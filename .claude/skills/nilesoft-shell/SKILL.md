@@ -58,6 +58,23 @@ Stop-Process -Name explorer -Force   # auto-restarts
 
 Or use a context-menu item that runs `@app.reload()` if one is configured. `app.reload`, `app.unload`, `app.cfg` are functions you invoke from inside `.nss`, not CLI flags.
 
+## Runtime modifier shortcuts (built-in)
+
+Hold one of these while right-clicking to alter Nilesoft's behavior at click-time. Documented in `C:\DATA\Workspace-public\Shell\docs\installation.html`.
+
+| Modifier | Effect |
+|---|---|
+| `CTRL` | Reload `shell.nss` (no menu shown) |
+| `WIN` | Show Win11 **modern** context menu (Nilesoft passes through) |
+| `CTRL+WIN` | Show Win11 **classic** context menu (Nilesoft fully bypassed) |
+| Right-click + left-click | Reload `shell.nss` |
+
+**Use `CTRL+WIN+right-click` when you specifically need a system extension (driver tools, install actions, etc.) that lives only in the native menu.**
+
+There is no built-in way to bind a different modifier to "show native menu" — `settings.exclude.where` only accepts window/process predicates, not key-state. Custom items can use `vis=key.shift()` / `vis=key.ctrl()` etc. for visibility, but cannot suppress Nilesoft's own menu.
+
+Also note: the `CTRL` reload conflicts with any custom item bound to `vis=key.ctrl()` — the reload preempts. The Power menu's "Reload Shell config" item is functionally redundant with this; keep it for discoverability.
+
 ## .nss syntax — what to know
 
 Plain text, case-insensitive. Comments with `//`. Blocks use `{ }`. Variables `$name = value`. Image references `@image_id`. Strings can be plain or expressions in single quotes (`'...'`).
