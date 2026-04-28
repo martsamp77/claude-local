@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "editor": {
+    "vimMode": false
+  },
+  "permissions": {
+    "allow": [
+      "Read(**)",
+      "Shell(git:status*)",
+      "Shell(git:diff*)",
+      "Shell(git:log*)",
+      "Shell(git:show*)",
+      "Shell(git:branch*)",
+      "Shell(ls:*)",
+      "Shell(pwd)",
+      "Shell(pwd:*)",
+      "Shell(where:*)",
+      "Shell(which:*)",
+      "Shell(cat:*)",
+      "Shell(type:*)",
+      "Shell(powershell:*)",
+      "Shell(pwsh:*)",
+      "Shell(wsl:*)",
+      "Shell(wsl.exe:*)",
+      "WebFetch(*)"
+    ],
+    "deny": [
+      "Shell(rm)",
+      "Read(.env*)",
+      "Write(**/.env*)",
+      "Write(**/*.key)"
+    ]
+  }
+}
