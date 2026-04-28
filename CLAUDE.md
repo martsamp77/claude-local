@@ -54,3 +54,4 @@ When a recurring Windows task doesn't fit any existing skill, create a new one:
 - `scheduled-tasks` — Task Scheduler via PowerShell
 - `windows-system-settings` — common Win11 tweaks (taskbar, Explorer, dark mode, privacy)
 - `dev-environment` — git, SSH, WSL, language toolchains
+- `nilesoft-shell` — context-menu customization via Nilesoft Shell (.nss configs, register/unregister, themes)

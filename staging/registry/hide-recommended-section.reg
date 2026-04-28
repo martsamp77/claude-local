@@ -1,0 +1,6 @@
+Windows Registry Editor Version 5.00
+
+; Hide the Recommended section in Windows 11 Start menu (machine-wide policy)
+; Inverse: change "dword:00000001" to "dword:00000000" or delete the value
+[HKEY_LOCAL_MACHINE\Software\Policies\Microsoft\Windows\Explorer]
+"HideRecommendedSection"=dword:00000001
