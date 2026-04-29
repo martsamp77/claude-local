@@ -8,7 +8,7 @@ This is not a code project. There's no app to build, no tests to run. Tasks are 
 
 - Windows 11 Pro, single-user (Marty).
 - PowerShell 7+ (`pwsh`) is available — that's the primary tool for Windows-native operations. Use the `PowerShell` tool.
-- Bash is also configured (Git for Windows). Use the `Bash` tool for cross-platform/file operations.
+- Bash is also configured (Git for Windows). Use the `Bash` tool for cross-platform/file ops and git work.
 
 **Convention:** prefer PowerShell for anything Windows-system-specific (registry, services, winget, scheduled tasks, env vars, system settings). Use bash for general file ops, scripting that needs to be portable, or git work. Don't shell out to `cmd.exe` unless a tool genuinely requires it.
 
@@ -17,7 +17,7 @@ This is not a code project. There's no app to build, no tests to run. Tasks are 
 These apply to every session. They are non-negotiable unless Marty explicitly waives one in the conversation.
 
 - **Confirm before destructive system changes.** Stopping critical services, deleting registry keys, uninstalling packages, removing scheduled tasks — pause and confirm.
-- **Back up the registry before edits.** Use `reg export <key> <path>.reg` before any `Set-ItemProperty` / `New-Item` / `Remove-Item` against the registry. Save backups to `C:\DATA\Workspace-37m\claude-local\backups\registry\` (create dir if needed) with a timestamped filename.
+- **Back up the registry before edits.** Use `reg export <key> <path>.reg` before any `Set-ItemProperty` / `New-Item` / `Remove-Item` against the registry. Save backups to `backups\registry\` (relative to repo root) with a timestamped filename.
 - **HKLM requires explicit confirmation.** `HKCU` changes affect only this user and are reversible — proceed with normal care. `HKLM` (machine-wide) changes need a clear "yes go ahead" from Marty before each write.
 - **Never disable UAC, Defender, SmartScreen, or Windows Update** without an explicit instruction naming the thing to disable.
 - **Prefer reversible changes.** A registry tweak that can be flipped back beats a uninstall that has to be reinstalled. Note the inverse operation when you make a change.
@@ -25,16 +25,47 @@ These apply to every session. They are non-negotiable unless Marty explicitly wa
 
 ## Where things live
 
-- **Skills** — `C:\DATA\Workspace-37m\claude-local\.claude\skills\<name>\SKILL.md`. Each skill is one folder with a `SKILL.md` containing YAML frontmatter (`name`, `description`) and a tight body. Read them when the matching topic comes up.
-- **Persistent memory** — `C:\Users\marty\.claude\projects\C--DATA-Workspace-37m-claude-local\memory\`. Auto-managed; this is where user/feedback/project/reference memories live.
-- **Reference library** — `C:\DATA\Workspace-public\everything-claude-code` is a sprawling blueprint repo with 300+ skills, 50+ agents, 80+ commands. Treat it as a library to browse when a need actually appears — don't auto-pull from it.
+All paths below are relative to the repo root.
+
+- **Skills** — `.claude/skills/<name>/SKILL.md`. Each skill is one folder with a `SKILL.md` containing YAML frontmatter (`name`, `description`) and a tight body. Loaded automatically by Claude Code.
+- **Commands** — `.claude/commands/<name>.md`. Slash commands invokable as `/<name>` in Claude Code. Each file describes what Claude should do when the command runs.
+- **Tools** — `tools/<category>/<name>.ps1`. Executable PowerShell scripts. All paths inside scripts are relative (via `$PSScriptRoot`). See **Tool inventory** below.
+- **Staging** — `staging/<area>/`. Config file edits that need elevation to copy into place (e.g. Nilesoft `.nss`, `.reg` files).
+- **Backups** — `backups/<area>/<timestamp>/`. Gitignored. Timestamped snapshots before destructive changes.
+- **Logs** — `logs/<category>/`. Gitignored. Output from tool runs that requested `-SaveLog`.
+- **Persistent memory** — `~/.claude/projects/<project-slug>/memory/`. Auto-managed by Claude; lives outside this repo.
+
+## Tool inventory
+
+At the start of any session where a system, performance, or diagnostic task comes up, run:
+
+```powershell
+Get-ChildItem tools -Recurse -Filter *.ps1 | Select-Object -ExpandProperty FullName
+```
+
+Then read the first 15 lines of each result. The `.SYNOPSIS` and `.WHEN` header fields tell you what each script does and when to reach for it. Run scripts from the repo root:
+
+```powershell
+.\tools\<category>\<name>.ps1 [params]
+```
+
+Every script in `tools/` uses this header format — the `.WHEN` field is the trigger: what Marty says that should make you reach for this tool.
+
+```powershell
+<#
+.NAME        <name>
+.SYNOPSIS    <one line — what it does>
+.CATEGORY    <category folder name>
+.USAGE       .\tools\<category>\<name>.ps1 [params]
+.WHEN        <what the user says that should trigger this tool>
+#>
+```
 
 ## Adding new skills
 
 When a recurring Windows task doesn't fit any existing skill, create a new one:
 
-1. Make `C:\DATA\Workspace-37m\claude-local\.claude\skills\<kebab-name>\`
-2. Add `SKILL.md` with frontmatter:
+1. Make `.claude/skills/<kebab-name>/SKILL.md` with frontmatter:
 
    ```markdown
    ---
@@ -43,7 +74,19 @@ When a recurring Windows task doesn't fit any existing skill, create a new one:
    ---
    ```
 
-3. Body should cover: when to use, key cmdlets/commands, safety notes, common patterns. Aim for 30–80 lines. Practical, not exhaustive.
+2. Body should cover: when to use, key cmdlets/commands, safety notes, common patterns. Aim for 30–80 lines. Practical, not exhaustive.
+3. Add a one-line entry to the skills table in README.md.
+4. Commit. The skill is then auto-discovered in future sessions.
+
+## Adding new tools
+
+When a recurring task would benefit from a reusable script:
+
+1. Pick or create a category folder under `tools/` (e.g. `diagnostics`, `network`, `system`, `startup`).
+2. Add `<name>.ps1` with the standard header block (see Tool inventory above).
+3. Use `$PSScriptRoot` for all relative path resolution inside the script. Never hardcode absolute paths.
+4. If the script produces output worth saving, write to `$repoRoot\logs\<category>\<timestamp>-<name>.txt` behind a `-SaveLog` switch.
+5. Update the tools table in README.md.
 
 ## Existing skills
 
@@ -55,3 +98,8 @@ When a recurring Windows task doesn't fit any existing skill, create a new one:
 - `windows-system-settings` — common Win11 tweaks (taskbar, Explorer, dark mode, privacy)
 - `dev-environment` — git, SSH, WSL, language toolchains
 - `nilesoft-shell` — context-menu customization via Nilesoft Shell (.nss configs, register/unregister, themes)
+- `performance-diagnosis` — diagnose slow/unresponsive machine; interpret perf-snapshot output; known hogs
+
+## Existing commands
+
+- `/perf` — run a performance snapshot and get an interpreted summary with recommended actions
