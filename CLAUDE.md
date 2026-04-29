@@ -88,6 +88,16 @@ When a recurring task would benefit from a reusable script:
 4. If the script produces output worth saving, write to `$repoRoot\logs\<category>\<timestamp>-<name>.txt` behind a `-SaveLog` switch.
 5. Update the tools table in README.md.
 
+## Completing a task
+
+After any task that adds or modifies a tool, skill, command, staging file, or any other repo artifact:
+
+1. **Update documentation** — if you added a skill, tool, or command, add a row to the relevant table in README.md and a one-line entry in the appropriate list in CLAUDE.md (if it isn't already there). If you modified one, update its description.
+2. **Commit** — stage the changed files explicitly by name and commit with a clear message describing what changed and why. Use the `Co-Authored-By` trailer. Do not commit `backups/` or `logs/`.
+3. **Do not push automatically.** Push only when Marty runs `/ship` or explicitly asks to push.
+
+If a task was purely conversational (no files changed), skip steps 1–3.
+
 ## Existing skills
 
 - `windows-registry` — safe registry read/write with backup

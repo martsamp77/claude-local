@@ -82,6 +82,7 @@ Scripts Claude can run directly. All paths are relative — no hardcoded machine
 | Command | What it does |
 |---|---|
 | `/perf` | Run perf-snapshot, interpret output, return top issues + recommended actions |
+| `/ship` | Commit any uncommitted work (with doc check) and push to the remote |
 
 ## How a session typically works
 
