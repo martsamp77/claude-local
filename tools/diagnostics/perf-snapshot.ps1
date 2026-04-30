@@ -1,6 +1,6 @@
 <#
 .NAME        perf-snapshot
-.SYNOPSIS    Capture a one-time performance snapshot: CPU, RAM, disk, top processes, pagefile, power plan.
+.SYNOPSIS    Capture a one-time performance snapshot: CPU, RAM, disk, top processes, pagefile, power plan, VMs.
 .CATEGORY    diagnostics
 .USAGE       .\tools\diagnostics\perf-snapshot.ps1 [-Top <n>] [-SaveLog]
 .WHEN        Machine feels slow or unresponsive; before/after a fix to compare baseline; Outlook+Cursor+Claude all open
@@ -48,14 +48,17 @@ if ($mc) {
 } else {
     Out 'Memory Compression process not found (normal on fresh boot)'
 }
-$commitGb      = [math]::Round(($os.TotalVirtualMemorySize - $os.FreeVirtualMemory) / 1MB, 1)
+$commitGb       = [math]::Round(($os.TotalVirtualMemorySize - $os.FreeVirtualMemory) / 1MB, 1)
 $totalVirtualGb = [math]::Round($os.TotalVirtualMemorySize / 1MB, 1)
-Out "Committed: ${commitGb} GB / ${totalVirtualGb} GB virtual"
+$commitPct      = [math]::Round($commitGb / $totalVirtualGb * 100, 0)
+Out "Committed: ${commitGb} GB / ${totalVirtualGb} GB virtual  (${commitPct}%)"
+if ($commitPct -gt 85) { Out '  ^^^ > 85% committed — system will swap under load' }
 
 # ── Pagefile ──────────────────────────────────────────────────────────────────
 Section 'PAGEFILE'
 Get-CimInstance Win32_PageFileUsage | ForEach-Object {
     Out "$($_.Name)  allocated=$($_.AllocatedBaseSize) MB  current=$($_.CurrentUsage) MB  peak=$($_.PeakUsage) MB"
+    if ($_.PeakUsage -gt 2000) { Out '  ^^^ Peak > 2 GB — significant swapping has occurred this session' }
 }
 
 # ── Power plan ────────────────────────────────────────────────────────────────
@@ -88,32 +91,99 @@ $ramProcs = Get-Process |
         @{N='CPU(s)';  E={[math]::Round($_.CPU, 1)}}
 $ramProcs | ForEach-Object { Out ('{0,-30} pid={1,-7} ram={2,-8} MB  cpu={3} s' -f $_.Name, $_.Id, $_.'RAM(MB)', $_.'CPU(s)') }
 
+# ── Virtual machine identification ───────────────────────────────────────────
+Section 'VIRTUAL MACHINES'
+$vmwps = Get-CimInstance Win32_Process -Filter "name='vmwp.exe'" -ErrorAction SilentlyContinue
+if (-not $vmwps) {
+    Out '  No vmwp.exe processes — no Hyper-V VMs running.'
+} else {
+    # Scan named pipes once — used to identify VM owners
+    $allPipes = try { [System.IO.Directory]::GetFiles('\\.\pipe\') } catch { @() }
+
+    foreach ($vmwp in $vmwps) {
+        $vpid = $vmwp.ProcessId
+
+        # Find the vmmem child
+        $vmmemChild = Get-CimInstance Win32_Process -ErrorAction SilentlyContinue |
+            Where-Object { $_.ParentProcessId -eq $vpid -and $_.Name -match 'vmmem' } |
+            Select-Object -First 1
+        $ramMb = 0
+        $vmmemName = 'vmmem'
+        if ($vmmemChild) {
+            $vmmemName = $vmmemChild.Name
+            $vmmemProc = Get-Process -Id $vmmemChild.ProcessId -ErrorAction SilentlyContinue
+            if ($vmmemProc) { $ramMb = [math]::Round($vmmemProc.WorkingSet64 / 1MB, 0) }
+        }
+
+        # Identify VM type from named pipes
+        $identity = 'Unknown Hyper-V VM'
+        $pipeHints = $allPipes | Where-Object {
+            $_ -match 'cowork|wslg|wsl|docker.desktop|docker_sandbox|android|WindowsSubsystemAndroid|wsa'
+        }
+        foreach ($pipe in $pipeHints) {
+            if ($pipe -match 'cowork')                              { $identity = 'Cowork (collaboration app VM)'; break }
+            if ($pipe -match 'docker.desktop|docker_sandbox')      { $identity = 'Docker Desktop VM'; break }
+            if ($pipe -match 'wslg|wsl')                           { $identity = 'WSL2'; break }
+            if ($pipe -match 'android|WindowsSubsystemAndroid|wsa'){ $identity = 'Windows Subsystem for Android'; break }
+        }
+        # vmmemWSL is always WSL regardless of pipes
+        if ($vmmemName -eq 'vmmemWSL') { $identity = 'WSL2' }
+
+        Out "  vmwp pid=${vpid}  →  ${vmmemName}  RAM=${ramMb} MB  Identity: ${identity}"
+    }
+}
+
 # ── Known hogs check ─────────────────────────────────────────────────────────
 Section 'KNOWN HOGS CHECK'
-$watchlist = @{
-    'Cursor'              = 'AI indexer — check which workspace is open; restart if CPU > 2000s'
-    'Docker Desktop'      = 'Runs a full Linux VM — quit if not actively using containers'
-    'com.docker.backend'  = 'Docker VM backend — quit Docker Desktop to stop this'
-    'vmmemWSL'            = 'WSL memory — cap via %USERPROFILE%\.wslconfig if unused'
-    'Wox'                 = 'Launcher — rebuild index if CPU > 500s (Settings → Index → Rebuild)'
-    'LogiPluginService'   = 'Logitech — disable startup if not using special device features'
-    'logioptionsplus_agent' = 'Logitech — companion to LogiPluginService'
-    'Creative Cloud'      = 'Adobe background service — quit from tray when not needed'
-    'SnagitCapture'       = 'Snagit — quit between capture sessions'
-    'Move Mouse'          = 'Mouse jiggler — check interval; should use near-zero CPU'
+$watchlist = [ordered]@{
+    # Dev tools
+    'Cursor'                = 'AI code editor indexer — restart if CPU > 2000s; check workspace size'
+    # Docker / VMs
+    'Docker Desktop'        = 'Runs a full Linux VM — quit from tray if not containerizing'
+    'com.docker.backend'    = 'Docker VM backend — if running without Docker UI, it is orphaned; kill it'
+    'vmmemWSL'              = 'WSL2 memory — cap via %USERPROFILE%\.wslconfig [wsl2] memory=4GB'
+    # Launchers
+    'Wox'                   = 'Launcher — rebuild index if CPU > 500s: Settings → Index → Rebuild'
+    # Peripheral software
+    'LogiPluginService'     = 'Logitech plugin service — disable startup if not using special device features'
+    'logioptionsplus_agent' = 'Logitech Options+ agent — companion to LogiPluginService; both should be near-zero CPU'
+    'RzSynapse'             = 'Razer Synapse — peripheral manager; should be near-zero; restart if CPU > 1000s'
+    # Adobe
+    'Creative Cloud'        = 'Adobe CC background service — quit from tray; disable autostart in CC Preferences'
+    'AdobeCollabSync'       = 'Adobe Collab background sync — stops when Creative Cloud quits'
+    # Capture / media
+    'SnagitCapture'         = 'Snagit capture engine — quit between sessions to reclaim RAM'
+    # Voice / dictation
+    'Wispr Flow'            = 'AI voice dictation — 1-2 processes is normal; more = orphaned instances, restart app'
+    'Wispr Flow Helper'     = 'Wispr Flow helper — should follow parent; if running alone, restart Wispr Flow'
+    # Utilities
+    'Move Mouse'            = 'Mouse jiggler — check interval; 1-second loops cause high CPU'
 }
 $found = $false
 foreach ($name in $watchlist.Keys) {
-    $p = Get-Process $name -ErrorAction SilentlyContinue
-    if ($p) {
-        $found = $true
-        $cpuS  = [math]::Round(($p | Measure-Object CPU -Sum).Sum, 1)
-        $ramMb = [math]::Round(($p | Measure-Object WorkingSet64 -Sum).Sum / 1MB, 0)
-        Out "  [RUNNING] $name  cpu=${cpuS}s  ram=${ramMb}MB"
+    $procs = Get-Process $name -ErrorAction SilentlyContinue
+    if ($procs) {
+        $found  = $true
+        $count  = @($procs).Count
+        $cpuS   = [math]::Round(($procs | Measure-Object CPU -Sum).Sum, 1)
+        $ramMb  = [math]::Round(($procs | Measure-Object WorkingSet64 -Sum).Sum / 1MB, 0)
+        $label  = if ($count -gt 1) { "  [RUNNING x${count}]" } else { '  [RUNNING]' }
+        Out "${label} $name  cpu=${cpuS}s  ram=${ramMb}MB"
         Out "            $($watchlist[$name])"
     }
 }
-if (-not $found) { Out '  None of the watched processes are running.' }
+
+# Notepad++ anomaly check — should never accumulate significant CPU
+$npp = Get-Process 'notepad++' -ErrorAction SilentlyContinue
+if ($npp) {
+    $nppCpu = [math]::Round(($npp | Measure-Object CPU -Sum).Sum, 1)
+    if ($nppCpu -gt 500) {
+        $found = $true
+        Out "  [ANOMALY] notepad++  cpu=${nppCpu}s — text editor should be near-zero; likely a runaway plugin or very large file"
+    }
+}
+
+if (-not $found) { Out '  None of the watched processes flagged.' }
 
 # ── Save log ──────────────────────────────────────────────────────────────────
 if ($SaveLog) {
