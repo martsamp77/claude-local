@@ -38,6 +38,36 @@ Set-ItemProperty -Path $key -Name "LaunchTo" -Value 1 -Type DWord
 Set-ItemProperty -Path $key -Name "UseCompactMode" -Value 1 -Type DWord
 ```
 
+## Disable Explorer grouping
+
+Win11 22H2+ auto-groups the Downloads folder by date and occasionally lets `Group by` settings sneak into other folders. To enforce "no grouping" as the default for every folder template:
+
+```powershell
+$base = 'HKCU:\Software\Microsoft\Windows\Shell\Bags\AllFolders\Shell'
+$templates = [ordered]@{
+  Generic   = '{5C4F28B5-F869-4E84-8E60-F11DB97C5CC7}'
+  Documents = '{7D49D726-3C21-4F05-99AA-FDC2C9474656}'
+  Pictures  = '{B3690E58-E961-423B-B687-386EBFD83239}'
+  Music     = '{94D6DDCC-4A68-4175-A374-BD584A510B78}'
+  Videos    = '{5FA96407-7E77-483C-AC93-691D05850DE8}'
+}
+foreach ($guid in $templates.Values) {
+  $path = "$base\$guid"
+  New-Item -Path $path -Force | Out-Null
+  Set-ItemProperty -Path $path -Name 'Mode'             -Value 4 -Type DWord  # Details view
+  Set-ItemProperty -Path $path -Name 'LogicalViewMode'  -Value 1 -Type DWord
+  Set-ItemProperty -Path $path -Name 'GroupView'        -Value 0 -Type DWord  # the kill switch
+  Set-ItemProperty -Path $path -Name 'GroupByKey:FMTID' -Value '' -Type String
+}
+Stop-Process -Name explorer -Force
+```
+
+Back up `HKCU:\Software\Microsoft\Windows\Shell\Bags`, `HKCU:\Software\Microsoft\Windows\Shell\BagMRU`, and `HKCU:\Software\Classes\Local Settings\Software\Microsoft\Windows\Shell\Bags` first via `reg export` (the `windows-registry` skill's pattern).
+
+This sets defaults for folders that don't yet have a Bag entry. Folders with sticky existing Bags ignore the new defaults — the manual fix for those is **... → Options → View** tab → **Apply to Folders** while viewing a no-group folder of that template.
+
+**Downloads-specific auto-group-by-date** is its own beast — Win11 applies it because the folder uses the *Downloads* template, not because of any `GroupView` setting. The fix has no clean registry equivalent: right-click the Downloads folder → Properties → Customize tab → **Optimize this folder for: General items** → ✓ Also apply to subfolders → OK. After this, Downloads inherits the Generic template's `GroupView=0` default.
+
 ## Taskbar (Win11)
 
 ```powershell
