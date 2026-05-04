@@ -92,11 +92,12 @@ When a recurring task would benefit from a reusable script:
 
 After any task that adds or modifies a tool, skill, command, staging file, or any other repo artifact:
 
-1. **Update documentation** — if you added a skill, tool, or command, add a row to the relevant table in README.md and a one-line entry in the appropriate list in CLAUDE.md (if it isn't already there). If you modified one, update its description.
-2. **Commit** — stage the changed files explicitly by name and commit with a clear message describing what changed and why. Use the `Co-Authored-By` trailer. Do not commit `backups/` or `logs/`.
-3. **Do not push automatically.** Push only when Marty runs `/ship` or explicitly asks to push.
+1. **Verify** — smoke-test the change. Don't claim it works without running it.
+2. **Update documentation** — if you added a skill, tool, or command, add a row to the relevant table in README.md and a one-line entry in the appropriate list in CLAUDE.md (if it isn't already there). If you modified one, update its description.
+3. **Commit** — stage the changed files explicitly by name and commit with a clear message describing what changed and why. Use the `Co-Authored-By` trailer. Do not commit `backups/` or `logs/`.
+4. **Push for successful improvements.** When the change is a real improvement to the project (new tool/skill/command, or material enhancement of one) and verification passed, push to origin. The `completing-an-improvement` skill encapsulates the full lifecycle including a "great commit message" guide. For partial work, debugging detours, or ad-hoc fixes that aren't repo improvements, don't auto-push — Marty can run `/ship` when ready.
 
-If a task was purely conversational (no files changed), skip steps 1–3.
+If a task was purely conversational (no files changed), skip 1–4.
 
 ## Existing skills
 
@@ -110,6 +111,7 @@ If a task was purely conversational (no files changed), skip steps 1–3.
 - `nilesoft-shell` — context-menu customization via Nilesoft Shell (.nss configs, register/unregister, themes)
 - `performance-diagnosis` — diagnose slow/unresponsive machine; interpret perf-snapshot output; known hogs
 - `startup-management` — audit Run keys, startup folders, logon scheduled tasks, auto-start services; triage what to disable
+- `completing-an-improvement` — full ship cycle for a verified repo improvement: docs, commit, push
 
 ## Existing commands
 
