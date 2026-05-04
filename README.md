@@ -37,11 +37,15 @@ claude-local/
 │       ├── windows-system-settings/
 │       ├── dev-environment/
 │       ├── nilesoft-shell/
-│       └── performance-diagnosis/
+│       ├── performance-diagnosis/
+│       └── startup-management/
 ├── tools/                             # Executable scripts — run from repo root
-│   └── diagnostics/
-│       ├── perf-snapshot.ps1          # One-shot system snapshot
-│       └── perf-watch.ps1             # Continuous threshold monitor
+│   ├── diagnostics/
+│   │   ├── perf-snapshot.ps1          # One-shot system snapshot
+│   │   └── perf-watch.ps1             # Continuous threshold monitor
+│   └── startup/
+│       ├── startup-inventory.ps1      # Read-only audit of every startup vector
+│       └── inspect-task.ps1           # Deep-dive on named scheduled task(s)
 ├── staging/                           # Edits ready to copy into protected dirs (elevated)
 │   ├── nilesoft/
 │   │   ├── shell.nss
@@ -67,6 +71,7 @@ claude-local/
 | [`dev-environment`](.claude/skills/dev-environment/SKILL.md) | git config, SSH keys, WSL setup, Node/Python/Go/Rust/.NET install; PowerShell `$PROFILE` |
 | [`nilesoft-shell`](.claude/skills/nilesoft-shell/SKILL.md) | `.nss` syntax; CLI flags; runtime modifier shortcuts; reload mechanics |
 | [`performance-diagnosis`](.claude/skills/performance-diagnosis/SKILL.md) | Diagnose slow/unresponsive machine; interpret snapshot output; known hogs and fixes |
+| [`startup-management`](.claude/skills/startup-management/SKILL.md) | Audit startup items across Run keys / folders / scheduled tasks / services; triage tiers; disable patterns |
 
 ## Tools
 
@@ -76,12 +81,15 @@ Scripts Claude can run directly. All paths are relative — no hardcoded machine
 |---|---|---|
 | `tools/diagnostics/perf-snapshot.ps1` | One-shot snapshot: CPU, RAM, disk, pagefile, power plan, top processes, known-hog check | `-Top <n>`, `-SaveLog` |
 | `tools/diagnostics/perf-watch.ps1` | Continuous monitor; highlights processes crossing CPU % or RAM MB thresholds | `-IntervalSec`, `-CpuThreshold`, `-RamThresholdMb` |
+| `tools/startup/startup-inventory.ps1` | Read-only audit: Run keys (incl. WOW6432), startup folders, logon/boot tasks, auto-start services, with enable/disable state | `-IncludeMicrosoftTasks`, `-SaveLog` |
+| `tools/startup/inspect-task.ps1` | Show full details of named scheduled task(s): action, principal, triggers | `-Name <task>[,<task>...]` |
 
 ## Commands
 
 | Command | What it does |
 |---|---|
 | `/perf` | Run perf-snapshot, interpret output, return top issues + recommended actions |
+| `/startup` | Run startup-inventory, classify items into disable / investigate / leave-alone tiers, stage commands |
 | `/ship` | Commit any uncommitted work (with doc check) and push to the remote |
 
 ## How a session typically works

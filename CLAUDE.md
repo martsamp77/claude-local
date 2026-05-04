@@ -109,7 +109,9 @@ If a task was purely conversational (no files changed), skip steps 1–3.
 - `dev-environment` — git, SSH, WSL, language toolchains
 - `nilesoft-shell` — context-menu customization via Nilesoft Shell (.nss configs, register/unregister, themes)
 - `performance-diagnosis` — diagnose slow/unresponsive machine; interpret perf-snapshot output; known hogs
+- `startup-management` — audit Run keys, startup folders, logon scheduled tasks, auto-start services; triage what to disable
 
 ## Existing commands
 
 - `/perf` — run a performance snapshot and get an interpreted summary with recommended actions
+- `/startup` — audit startup items and recommend what to disable
