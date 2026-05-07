@@ -1,15 +1,27 @@
 # claude-local
 
-Personal Claude Code workspace for administering Marty's Windows 11 machine — system settings, registry, environment, software, services, scheduled tasks, dev tooling, and Nilesoft Shell customization. Working directory for sysadmin-style asks; not an application.
+Personal Claude Code workspace for administering Marty's machines — system settings, environment, software, services, scheduled jobs, dev tooling. One git checkout, synced across Windows, Linux, and macOS. Sysadmin-style asks; not an application.
 
-When Marty opens Claude Code in this directory, `CLAUDE.md` is auto-loaded along with any matching skill in `.claude/skills/`. Conversations pick up the conventions and tool knowledge without re-explaining each session.
+When Marty opens Claude Code in this directory on any machine, `CLAUDE.md` is auto-loaded. It detects the current OS from session context and tells Claude which skills, tools, and commands are eligible. Conversations pick up the conventions and tool knowledge without re-explaining each session.
+
+## OS support matrix
+
+| OS | Status | Skills available | Tools available |
+|---|---|---|---|
+| Windows 11 | ✅ Full | 10 (`windows-*`, `winget-packages`, `nilesoft-shell`, `dev-environment`) | 4 (perf, startup) |
+| Linux | 🚧 Skeleton planned | none yet (Phase 3) | none yet |
+| macOS | 🚧 Skeleton planned | none yet (Phase 4) | none yet |
+| WSL | ↪ Treated as Linux | inherits Linux scope; flags `/mnt/c/...` writes | inherits Linux |
+| All OSes | ✅ | `completing-an-improvement` | `/ship` command |
+
+Each skill description starts with a `[scope]` tag — `[windows]`, `[linux]`, `[macos]`, `[unix]` (Linux+macOS), or `[all]`. Claude filters by current OS automatically; see the **Detect your platform first** section in `CLAUDE.md`.
 
 ## What this is
 
 Three layers:
 
-- **Skills** (`.claude/skills/`) — instruction files that tell Claude how to approach a task domain.
-- **Tools** (`tools/`) — executable PowerShell scripts Claude can run directly. Self-describing via header comments; Claude discovers them automatically via the Tool inventory section of `CLAUDE.md`.
+- **Skills** (`.claude/skills/`) — instruction files that tell Claude how to approach a task domain. Scope-tagged so Claude only uses ones that match the current OS.
+- **Tools** (`tools/<os>/`) — executable scripts Claude can run directly (PowerShell on Windows, bash on Linux/macOS). Self-describing via header comments; Claude discovers them automatically via the Tool inventory section of `CLAUDE.md`.
 - **Commands** (`.claude/commands/`) — slash commands that trigger multi-step workflows (e.g. `/perf`).
 
 What it intentionally does **not** contain:
@@ -41,26 +53,37 @@ claude-local/
 │       ├── windows-startup-management/      # [windows]
 │       └── completing-an-improvement/       # [all]
 ├── tools/                             # Executable scripts, organized by OS
-│   └── windows/
-│       ├── diagnostics/
-│       │   ├── perf-snapshot.ps1      # One-shot system snapshot
-│       │   └── perf-watch.ps1         # Continuous threshold monitor
-│       └── startup/
-│           ├── startup-inventory.ps1  # Read-only audit of every startup vector
-│           └── inspect-task.ps1       # Deep-dive on named scheduled task(s)
+│   ├── windows/                       # PowerShell — .ps1
+│   │   ├── diagnostics/
+│   │   │   ├── perf-snapshot.ps1      # One-shot system snapshot
+│   │   │   └── perf-watch.ps1         # Continuous threshold monitor
+│   │   └── startup/
+│   │       ├── startup-inventory.ps1  # Read-only audit of every startup vector
+│   │       └── inspect-task.ps1       # Deep-dive on named scheduled task(s)
+│   ├── linux/                         # bash — .sh (Phase 3)
+│   ├── macos/                         # bash — .sh (Phase 4)
+│   └── unix/                          # portable bash for Linux + macOS
 ├── staging/                           # Edits ready to copy into protected dirs (elevated)
-│   └── windows/
-│       ├── nilesoft/
-│       │   ├── shell.nss
-│       │   └── imports/
-│       └── registry/
+│   ├── windows/
+│   │   ├── nilesoft/
+│   │   │   ├── shell.nss
+│   │   │   └── imports/
+│   │   └── registry/
+│   ├── linux/                         # systemd units, dotfiles, etc. (as needed)
+│   └── macos/                         # plists, defaults exports (as needed)
 ├── logs/                              # GIT-IGNORED. Output from -SaveLog runs.
-│   └── windows/
+│   ├── windows/
+│   ├── linux/
+│   └── macos/
 └── backups/                           # GIT-IGNORED. Timestamped snapshots before edits.
-    └── windows/
+    ├── windows/
+    ├── linux/
+    └── macos/
 ```
 
 ## Skills
+
+### Windows (`[windows]`)
 
 | Skill | What it covers |
 |---|---|
@@ -70,15 +93,30 @@ claude-local/
 | [`windows-services`](.claude/skills/windows-services/SKILL.md) | `Get-Service` / `Set-Service`; startup type; critical-service warning list |
 | [`windows-scheduled-tasks`](.claude/skills/windows-scheduled-tasks/SKILL.md) | `Register-ScheduledTask`; logon vs daily vs startup triggers; SYSTEM vs interactive |
 | [`windows-system-settings`](.claude/skills/windows-system-settings/SKILL.md) | Common Win11 tweaks (Explorer, taskbar, dark mode, privacy); restart-Explorer pattern |
-| [`dev-environment`](.claude/skills/dev-environment/SKILL.md) | git config, SSH keys, WSL setup, Node/Python/Go/Rust/.NET install; PowerShell `$PROFILE` |
+| [`dev-environment`](.claude/skills/dev-environment/SKILL.md) | git config, SSH keys, WSL setup, Node/Python/Go/Rust/.NET install; PowerShell `$PROFILE`. (Will be split into `windows-dev-environment` and `unix-dev-environment` in Phase 5.) |
 | [`nilesoft-shell`](.claude/skills/nilesoft-shell/SKILL.md) | `.nss` syntax; CLI flags; runtime modifier shortcuts; reload mechanics |
 | [`windows-perf-diagnosis`](.claude/skills/windows-perf-diagnosis/SKILL.md) | Diagnose slow/unresponsive machine; interpret snapshot output; known hogs and fixes |
 | [`windows-startup-management`](.claude/skills/windows-startup-management/SKILL.md) | Audit startup items across Run keys / folders / scheduled tasks / services; triage tiers; disable patterns |
+
+### Linux (`[linux]`)
+
+_None yet — planned in Phase 3: `linux-systemd`, `linux-packages` (apt/dnf/pacman), `linux-env-vars`, `linux-perf-diagnosis`._
+
+### macOS (`[macos]`)
+
+_None yet — planned in Phase 4: `macos-launchd`, `macos-homebrew`, `macos-defaults`, `macos-env-vars`, `macos-perf-diagnosis`._
+
+### Cross-platform (`[all]`)
+
+| Skill | What it covers |
+|---|---|
 | [`completing-an-improvement`](.claude/skills/completing-an-improvement/SKILL.md) | End-to-end ship cycle for a verified repo improvement: smoke-test, doc updates, commit (with great-message guide), push |
 
 ## Tools
 
-Scripts Claude can run directly. All paths are relative — no hardcoded machine paths.
+Scripts Claude can run directly. All paths are relative — no hardcoded machine paths. Filtered by `.PLATFORM` against the current OS.
+
+### Windows (`tools/windows/`)
 
 | Script | What it does | Key params |
 |---|---|---|
@@ -87,35 +125,41 @@ Scripts Claude can run directly. All paths are relative — no hardcoded machine
 | `tools/windows/startup/startup-inventory.ps1` | Read-only audit: Run keys (incl. WOW6432), startup folders, logon/boot tasks, auto-start services, with enable/disable state | `-IncludeMicrosoftTasks`, `-SaveLog` |
 | `tools/windows/startup/inspect-task.ps1` | Show full details of named scheduled task(s): action, principal, triggers | `-Name <task>[,<task>...]` |
 
+### Linux (`tools/linux/`) and macOS (`tools/macos/`)
+
+_None yet — planned in Phases 3 & 4. Linux/macOS perf-snapshot equivalents will mirror the Windows version's section structure but use `top`/`free`/`/proc` (Linux) and `top -l 1`/`vm_stat` (macOS)._
+
 ## Commands
 
-| Command | What it does |
-|---|---|
-| `/perf` | Run perf-snapshot, interpret output, return top issues + recommended actions |
-| `/startup` | Run startup-inventory, classify items into disable / investigate / leave-alone tiers, stage commands |
-| `/ship` | Commit any uncommitted work (with doc check) and push to the remote |
+| Command | OS scope | What it does |
+|---|---|---|
+| `/perf` | Windows (Linux/macOS planned) | Run perf-snapshot, interpret output, return top issues + recommended actions |
+| `/startup` | Windows only | Run startup-inventory, classify items into disable / investigate / leave-alone tiers, stage commands |
+| `/ship` | All | Commit any uncommitted work (with doc check) and push to the remote |
 
 ## How a session typically works
 
-1. Open Claude Code in this directory (or any IDE pointed at it).
-2. Ask in natural language — "why is my machine slow", "remove the AMD entry from the right-click menu", "set up scheduled defrag at 3am".
-3. For **HKLM** registry edits, **machine env vars**, **service changes**, or **anything under `Program Files`**: Claude proposes the change, stages files in `staging/<area>/`, takes a backup in `backups/<area>/<timestamp>/`, and gives a one-line elevated PowerShell command for Marty to paste into an admin shell.
-4. Reversible local changes (HKCU registry, user env vars, `winget` user-scope, file ops) execute directly.
-5. When performance, slowness, or resource issues come up, Claude auto-discovers `tools/<os>/diagnostics/` scripts (e.g. `tools/windows/diagnostics/`) and runs the appropriate one.
+1. Open Claude Code in this directory on whichever machine you're on.
+2. Claude reads `Platform: win32 | linux | darwin` from the session's system reminder and filters skills/tools to the matching `[scope]`.
+3. Ask in natural language — "why is my machine slow", "remove the AMD entry from the right-click menu", "set up scheduled defrag at 3am" (Windows); "what's holding port 8080" / "make this systemd unit start at boot" (Linux); etc.
+4. For changes that need elevation (Windows: HKLM, services, machine env vars, `Program Files`; Linux/macOS: anything under `/etc`, system units, system-wide installs): Claude proposes the change, stages files in `staging/<os>/<area>/`, takes a backup in `backups/<os>/<area>/<timestamp>/`, and prints a one-line elevated command for you to paste into an admin/sudo shell.
+5. Reversible local changes (per-user registry, user env vars, user packages, dotfile edits, file ops) execute directly.
+6. When performance/slowness/resource issues come up, Claude auto-discovers `tools/<os>/diagnostics/` scripts and runs the appropriate one.
 
 ## Conventions
 
-- **PowerShell first** for Windows-system operations. Bash for cross-platform/file ops and git.
-- **Back up before destructive edits.** Registry: `reg export <key> backups/windows/registry/<ts>/<name>.reg`.
-- **HKLM writes need explicit confirmation.** HKCU is per-user and reversible — proceed with care. HKLM is machine-wide — pause and name the key/value before writing.
-- **Never disable UAC, Defender, SmartScreen, or Windows Update** without an explicit instruction naming the thing.
-- **Don't auto-elevate.** Stage and hand back an elevated command.
+Every OS:
+- **Honor the `[scope]` tag.** Don't reach for a Windows skill on Linux, or vice versa.
+- **Back up before destructive edits.** Snapshot to `backups/<os>/<area>/<ts>/...`.
+- **Don't auto-elevate.** Stage and hand back the `Start-Process -Verb RunAs` / `sudo ...` command.
 - **Note the inverse** of any forward operation.
-- **All tool scripts use relative paths via `$PSScriptRoot`.** Never hardcode absolute paths to the repo.
+- **All tool scripts use relative paths via `$PSScriptRoot` (PS) or `$(dirname "$0")` (bash).** Never hardcode absolute paths to the repo.
+
+OS-specific safety rules live in `CLAUDE.md` under **Per-OS conventions** — those override or extend the above for HKLM (Windows), `/etc/` and systemd (Linux), and SIP/launchd (macOS).
 
 ## Adding to the workspace
 
-**New skill:** `.claude/skills/<kebab-name>/SKILL.md` with frontmatter + body. Add a row to the skills table above and to `CLAUDE.md`.
+**New skill:** `.claude/skills/<kebab-name>/SKILL.md` with frontmatter + body. Description must start with a `[scope]` tag (`[windows]`, `[linux]`, `[macos]`, `[unix]`, or `[all]`) — wrap in double quotes since YAML treats leading `[` as a flow sequence. Use OS-prefixed names (`windows-foo`, `linux-foo`, `macos-foo`, `unix-foo`) for OS-specific skills. Add a row to the matching subtable above and to `CLAUDE.md`.
 
 **New tool:** `tools/<os>/<category>/<name>.ps1` (or `.sh` for Linux/macOS) with the standard header block (`.NAME`, `.SYNOPSIS`, `.PLATFORM`, `.CATEGORY`, `.USAGE`, `.WHEN`). Add a row to the tools table above. Claude discovers it automatically next session via `CLAUDE.md`.
 

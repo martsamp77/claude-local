@@ -1,27 +1,62 @@
-# claude-local — Windows 11 management workspace
+# claude-local — multi-OS sysadmin workspace
 
-This directory is Marty's home base for Windows 11 administration tasks. When he asks Claude Code to change a system setting, edit the registry, manage software, tweak the environment, or set up dev tooling, work happens here.
+This repo is Marty's home base for system-administration tasks across Windows, Linux, and macOS. One git checkout, synced across machines via push/pull. Per-machine artifacts (backups, logs) are gitignored so they don't collide.
 
 This is not a code project. There's no app to build, no tests to run. Tasks are sysadmin-flavored: *change something on this machine safely*.
 
-## Platform
+## Detect your platform first
 
-- Windows 11 Pro, single-user (Marty).
-- PowerShell 7+ (`pwsh`) is available — that's the primary tool for Windows-native operations. Use the `PowerShell` tool.
-- Bash is also configured (Git for Windows). Use the `Bash` tool for cross-platform/file ops and git work.
+The session-start system reminder includes `Platform: win32 | linux | darwin` (and `Shell:` and `OS Version:`). **Use that to decide what's eligible:**
 
-**Convention:** prefer PowerShell for anything Windows-system-specific (registry, services, winget, scheduled tasks, env vars, system settings). Use bash for general file ops, scripting that needs to be portable, or git work. Don't shell out to `cmd.exe` unless a tool genuinely requires it.
+| Platform value | Use skills/tools tagged | Primary shell |
+|---|---|---|
+| `win32` | `[windows]` and `[all]` | PowerShell |
+| `linux` | `[linux]`, `[unix]`, and `[all]` | bash / zsh |
+| `darwin` (macOS) | `[macos]`, `[unix]`, and `[all]` | zsh |
+| WSL (linux + `$WSL_DISTRO_NAME` set, or `microsoft` in `/proc/version`) | treat as `linux`; flag any `/mnt/c/...` write — that path crosses into Windows | bash |
 
-## Safety conventions
+Each skill's `description` frontmatter starts with a bracketed scope tag (`[windows]`, `[linux]`, `[macos]`, `[unix]`, or `[all]`). Each tool header has a `.PLATFORM` field for the same purpose. **Honor the tag.** If asked to run a tool tagged for a different OS, refuse and explain why rather than silently doing nothing or quietly using the wrong tool.
 
-These apply to every session. They are non-negotiable unless Marty explicitly waives one in the conversation.
+## Per-OS conventions
 
+### When on Windows (`Platform: win32`)
+
+Primary tool: `PowerShell` (PowerShell 7+ / `pwsh`). `Bash` (Git for Windows) is fine for file ops and git. Avoid `cmd.exe`.
+
+Safety:
 - **Confirm before destructive system changes.** Stopping critical services, deleting registry keys, uninstalling packages, removing scheduled tasks — pause and confirm.
-- **Back up the registry before edits.** Use `reg export <key> <path>.reg` before any `Set-ItemProperty` / `New-Item` / `Remove-Item` against the registry. Save backups to `backups\registry\` (relative to repo root) with a timestamped filename.
+- **Back up the registry before edits.** Use `reg export <key> <path>.reg` before any `Set-ItemProperty` / `New-Item` / `Remove-Item` against the registry. Save backups to `backups\windows\registry\` (relative to repo root) with a timestamped filename.
 - **HKLM requires explicit confirmation.** `HKCU` changes affect only this user and are reversible — proceed with normal care. `HKLM` (machine-wide) changes need a clear "yes go ahead" from Marty before each write.
 - **Never disable UAC, Defender, SmartScreen, or Windows Update** without an explicit instruction naming the thing to disable.
-- **Prefer reversible changes.** A registry tweak that can be flipped back beats a uninstall that has to be reinstalled. Note the inverse operation when you make a change.
 - **Don't auto-elevate.** If something needs admin (`HKLM`, system services, machine env vars), say so and let Marty re-launch the shell elevated rather than chaining `Start-Process -Verb RunAs`.
+
+### When on Linux (`Platform: linux`)
+
+Primary tool: `Bash`. Detect distro via `/etc/os-release` to choose between `apt`, `dnf`, `pacman`, etc. Use `sudo` explicitly — never `sudo` silently.
+
+Safety:
+- **Confirm before destructive system changes.** Stopping `systemd` units the system depends on, removing packages, editing files under `/etc/`, modifying `/etc/fstab` or `/etc/sudoers`, killing processes — pause and confirm.
+- **Back up files under `/etc/` before edits.** Copy to `backups/linux/etc/<timestamp>/` (relative to repo root) before editing in place.
+- **System-wide changes require explicit confirmation.** Per-user changes (`~/.bashrc`, `~/.config/`, user systemd units under `~/.config/systemd/user/`) are reversible — proceed with care. System-wide changes (`/etc/`, system units, `apt` install/remove) need a clear "yes" from Marty before each write.
+- **Never modify SELinux/AppArmor enforcement, firewall rules, or sshd config** without an explicit instruction naming the thing.
+- **Don't auto-elevate.** If a command needs `sudo`, print it and let Marty run it; don't pipe to `sudo` silently.
+
+### When on macOS (`Platform: darwin`)
+
+Primary tool: `Bash` (zsh is the user shell; bash works fine for scripting). Homebrew is the package manager. SIP-protected paths (under `/System`, `/usr` except `/usr/local`) are read-only without disabling SIP — don't try to write there.
+
+Safety:
+- **Confirm before destructive system changes.** Unloading LaunchAgents/LaunchDaemons that the system uses, `defaults delete`, removing apps, killing processes — pause and confirm.
+- **Back up before `defaults write` or plist edits.** Snapshot the current value (`defaults read <domain> <key>`) into `backups/macos/defaults/<timestamp>/<domain>.txt` so it can be reverted.
+- **System-level launchd changes require explicit confirmation.** Per-user `~/Library/LaunchAgents/` is reversible — proceed with care. `/Library/LaunchDaemons/` and anything under `/Library/LaunchAgents/` (system-wide) needs a clear "yes" before each write.
+- **Never disable Gatekeeper, SIP, FileVault, or the firewall** without an explicit instruction.
+- **Don't auto-elevate.** If something needs `sudo`, print it.
+
+### Conventions that apply on every OS
+
+- **Prefer reversible changes.** A flip-back beats a reinstall. Note the inverse of every forward operation.
+- **Don't bundle unrelated work in the same commit.** If you wandered, split.
+- See [Completing a task](#completing-a-task) for the doc-update + commit workflow that applies everywhere.
 
 ## Where things live
 
@@ -69,20 +104,22 @@ Every script uses this header format — the `.WHEN` field is the trigger: what 
 
 ## Adding new skills
 
-When a recurring Windows task doesn't fit any existing skill, create a new one:
+When a recurring task doesn't fit any existing skill, create a new one:
 
-1. Make `.claude/skills/<kebab-name>/SKILL.md` with frontmatter:
+1. Pick a name that reflects scope. Use OS-prefixed kebab names for OS-specific skills (`windows-foo`, `linux-foo`, `macos-foo`); use a `unix-` prefix for Linux+macOS shared skills; otherwise no prefix for `[all]` skills.
+2. Make `.claude/skills/<kebab-name>/SKILL.md` with frontmatter:
 
    ```markdown
    ---
    name: <kebab-name>
-   description: <one line — when this skill applies>
+   description: "[scope] <one line — when this skill applies>"
    ---
    ```
 
-2. Body should cover: when to use, key cmdlets/commands, safety notes, common patterns. Aim for 30–80 lines. Practical, not exhaustive.
-3. Add a one-line entry to the skills table in README.md.
-4. Commit. The skill is then auto-discovered in future sessions.
+   The `[scope]` token must be one of `[windows]`, `[linux]`, `[macos]`, `[unix]`, or `[all]`. Wrap the whole description in double quotes whenever the leading character is `[`, otherwise YAML parses it as a flow sequence.
+3. Body should cover: when to use, key cmdlets/commands, safety notes, common patterns. Aim for 30–80 lines. Practical, not exhaustive.
+4. Add a one-line entry to the skills table in README.md (in the OS section that matches the scope).
+5. Commit. The skill is then auto-discovered in future sessions.
 
 ## Adding new tools
 

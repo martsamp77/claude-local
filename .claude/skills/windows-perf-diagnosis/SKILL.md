@@ -22,7 +22,7 @@ Run from the repo root (relative paths, no elevation needed):
 .\tools\windows\diagnostics\perf-watch.ps1 [-IntervalSec 5] [-CpuThreshold 25] [-RamThresholdMb 800]
 ```
 
-Saved logs land in `logs/diagnostics/` (gitignored).
+Saved logs land in `logs/windows/diagnostics/` (gitignored).
 
 ## Reading the snapshot
 
