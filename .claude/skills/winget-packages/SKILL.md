@@ -1,6 +1,6 @@
 ---
 name: winget-packages
-description: Install, upgrade, search, list, pin, and uninstall software via winget. Use for software management on Windows 11.
+description: "[windows] Install, upgrade, search, list, pin, and uninstall software via winget. Use for software management on Windows 11."
 ---
 
 # winget-packages

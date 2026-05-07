@@ -1,8 +1,9 @@
 <#
 .NAME        perf-watch
 .SYNOPSIS    Continuously poll top processes and alert when CPU or RAM crosses a threshold.
+.PLATFORM    windows
 .CATEGORY    diagnostics
-.USAGE       .\tools\diagnostics\perf-watch.ps1 [-IntervalSec 5] [-CpuThreshold 25] [-RamThresholdMb 800] [-Top 10]
+.USAGE       .\tools\windows\diagnostics\perf-watch.ps1 [-IntervalSec 5] [-CpuThreshold 25] [-RamThresholdMb 800] [-Top 10]
 .WHEN        Catching intermittent spikes; watching a specific app; monitoring during a reproduce session
 #>
 param(

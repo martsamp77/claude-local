@@ -29,33 +29,35 @@ claude-local/
 │   ├── commands/                      # Slash commands
 │   │   └── perf.md                    # /perf — snapshot + interpret
 │   └── skills/                        # Domain skills, auto-discovered by name
-│       ├── windows-registry/
-│       ├── windows-env-vars/
-│       ├── winget-packages/
-│       ├── windows-services/
-│       ├── scheduled-tasks/
-│       ├── windows-system-settings/
-│       ├── dev-environment/
-│       ├── nilesoft-shell/
-│       ├── performance-diagnosis/
-│       └── startup-management/
-├── tools/                             # Executable scripts — run from repo root
-│   ├── diagnostics/
-│   │   ├── perf-snapshot.ps1          # One-shot system snapshot
-│   │   └── perf-watch.ps1             # Continuous threshold monitor
-│   └── startup/
-│       ├── startup-inventory.ps1      # Read-only audit of every startup vector
-│       └── inspect-task.ps1           # Deep-dive on named scheduled task(s)
+│       ├── windows-registry/                # [windows]
+│       ├── windows-env-vars/                # [windows]
+│       ├── winget-packages/                 # [windows]
+│       ├── windows-services/                # [windows]
+│       ├── windows-scheduled-tasks/         # [windows]
+│       ├── windows-system-settings/         # [windows]
+│       ├── dev-environment/                 # [windows] (split planned)
+│       ├── nilesoft-shell/                  # [windows]
+│       ├── windows-perf-diagnosis/          # [windows]
+│       ├── windows-startup-management/      # [windows]
+│       └── completing-an-improvement/       # [all]
+├── tools/                             # Executable scripts, organized by OS
+│   └── windows/
+│       ├── diagnostics/
+│       │   ├── perf-snapshot.ps1      # One-shot system snapshot
+│       │   └── perf-watch.ps1         # Continuous threshold monitor
+│       └── startup/
+│           ├── startup-inventory.ps1  # Read-only audit of every startup vector
+│           └── inspect-task.ps1       # Deep-dive on named scheduled task(s)
 ├── staging/                           # Edits ready to copy into protected dirs (elevated)
-│   ├── nilesoft/
-│   │   ├── shell.nss
-│   │   └── imports/
-│   └── registry/
+│   └── windows/
+│       ├── nilesoft/
+│       │   ├── shell.nss
+│       │   └── imports/
+│       └── registry/
 ├── logs/                              # GIT-IGNORED. Output from -SaveLog runs.
-│   └── diagnostics/
+│   └── windows/
 └── backups/                           # GIT-IGNORED. Timestamped snapshots before edits.
-    ├── nilesoft/
-    └── registry/
+    └── windows/
 ```
 
 ## Skills
@@ -66,12 +68,12 @@ claude-local/
 | [`windows-env-vars`](.claude/skills/windows-env-vars/SKILL.md) | User vs Machine env vars; PATH split-dedupe-rewrite pattern; `WM_SETTINGCHANGE` broadcast |
 | [`winget-packages`](.claude/skills/winget-packages/SKILL.md) | Search/install/upgrade/list/pin/uninstall; export/import for snapshots |
 | [`windows-services`](.claude/skills/windows-services/SKILL.md) | `Get-Service` / `Set-Service`; startup type; critical-service warning list |
-| [`scheduled-tasks`](.claude/skills/scheduled-tasks/SKILL.md) | `Register-ScheduledTask`; logon vs daily vs startup triggers; SYSTEM vs interactive |
+| [`windows-scheduled-tasks`](.claude/skills/windows-scheduled-tasks/SKILL.md) | `Register-ScheduledTask`; logon vs daily vs startup triggers; SYSTEM vs interactive |
 | [`windows-system-settings`](.claude/skills/windows-system-settings/SKILL.md) | Common Win11 tweaks (Explorer, taskbar, dark mode, privacy); restart-Explorer pattern |
 | [`dev-environment`](.claude/skills/dev-environment/SKILL.md) | git config, SSH keys, WSL setup, Node/Python/Go/Rust/.NET install; PowerShell `$PROFILE` |
 | [`nilesoft-shell`](.claude/skills/nilesoft-shell/SKILL.md) | `.nss` syntax; CLI flags; runtime modifier shortcuts; reload mechanics |
-| [`performance-diagnosis`](.claude/skills/performance-diagnosis/SKILL.md) | Diagnose slow/unresponsive machine; interpret snapshot output; known hogs and fixes |
-| [`startup-management`](.claude/skills/startup-management/SKILL.md) | Audit startup items across Run keys / folders / scheduled tasks / services; triage tiers; disable patterns |
+| [`windows-perf-diagnosis`](.claude/skills/windows-perf-diagnosis/SKILL.md) | Diagnose slow/unresponsive machine; interpret snapshot output; known hogs and fixes |
+| [`windows-startup-management`](.claude/skills/windows-startup-management/SKILL.md) | Audit startup items across Run keys / folders / scheduled tasks / services; triage tiers; disable patterns |
 | [`completing-an-improvement`](.claude/skills/completing-an-improvement/SKILL.md) | End-to-end ship cycle for a verified repo improvement: smoke-test, doc updates, commit (with great-message guide), push |
 
 ## Tools
@@ -80,10 +82,10 @@ Scripts Claude can run directly. All paths are relative — no hardcoded machine
 
 | Script | What it does | Key params |
 |---|---|---|
-| `tools/diagnostics/perf-snapshot.ps1` | One-shot snapshot: CPU, RAM, disk, pagefile, power plan, top processes, known-hog check | `-Top <n>`, `-SaveLog` |
-| `tools/diagnostics/perf-watch.ps1` | Continuous monitor; highlights processes crossing CPU % or RAM MB thresholds | `-IntervalSec`, `-CpuThreshold`, `-RamThresholdMb` |
-| `tools/startup/startup-inventory.ps1` | Read-only audit: Run keys (incl. WOW6432), startup folders, logon/boot tasks, auto-start services, with enable/disable state | `-IncludeMicrosoftTasks`, `-SaveLog` |
-| `tools/startup/inspect-task.ps1` | Show full details of named scheduled task(s): action, principal, triggers | `-Name <task>[,<task>...]` |
+| `tools/windows/diagnostics/perf-snapshot.ps1` | One-shot snapshot: CPU, RAM, disk, pagefile, power plan, top processes, known-hog check | `-Top <n>`, `-SaveLog` |
+| `tools/windows/diagnostics/perf-watch.ps1` | Continuous monitor; highlights processes crossing CPU % or RAM MB thresholds | `-IntervalSec`, `-CpuThreshold`, `-RamThresholdMb` |
+| `tools/windows/startup/startup-inventory.ps1` | Read-only audit: Run keys (incl. WOW6432), startup folders, logon/boot tasks, auto-start services, with enable/disable state | `-IncludeMicrosoftTasks`, `-SaveLog` |
+| `tools/windows/startup/inspect-task.ps1` | Show full details of named scheduled task(s): action, principal, triggers | `-Name <task>[,<task>...]` |
 
 ## Commands
 
@@ -99,12 +101,12 @@ Scripts Claude can run directly. All paths are relative — no hardcoded machine
 2. Ask in natural language — "why is my machine slow", "remove the AMD entry from the right-click menu", "set up scheduled defrag at 3am".
 3. For **HKLM** registry edits, **machine env vars**, **service changes**, or **anything under `Program Files`**: Claude proposes the change, stages files in `staging/<area>/`, takes a backup in `backups/<area>/<timestamp>/`, and gives a one-line elevated PowerShell command for Marty to paste into an admin shell.
 4. Reversible local changes (HKCU registry, user env vars, `winget` user-scope, file ops) execute directly.
-5. When performance, slowness, or resource issues come up, Claude auto-discovers `tools/diagnostics/` scripts and runs the appropriate one.
+5. When performance, slowness, or resource issues come up, Claude auto-discovers `tools/<os>/diagnostics/` scripts (e.g. `tools/windows/diagnostics/`) and runs the appropriate one.
 
 ## Conventions
 
 - **PowerShell first** for Windows-system operations. Bash for cross-platform/file ops and git.
-- **Back up before destructive edits.** Registry: `reg export <key> backups/registry/<ts>/<name>.reg`.
+- **Back up before destructive edits.** Registry: `reg export <key> backups/windows/registry/<ts>/<name>.reg`.
 - **HKLM writes need explicit confirmation.** HKCU is per-user and reversible — proceed with care. HKLM is machine-wide — pause and name the key/value before writing.
 - **Never disable UAC, Defender, SmartScreen, or Windows Update** without an explicit instruction naming the thing.
 - **Don't auto-elevate.** Stage and hand back an elevated command.
@@ -115,7 +117,7 @@ Scripts Claude can run directly. All paths are relative — no hardcoded machine
 
 **New skill:** `.claude/skills/<kebab-name>/SKILL.md` with frontmatter + body. Add a row to the skills table above and to `CLAUDE.md`.
 
-**New tool:** `tools/<category>/<name>.ps1` with the standard header block (`.NAME`, `.SYNOPSIS`, `.CATEGORY`, `.USAGE`, `.WHEN`). Add a row to the tools table above. Claude discovers it automatically next session via `CLAUDE.md`.
+**New tool:** `tools/<os>/<category>/<name>.ps1` (or `.sh` for Linux/macOS) with the standard header block (`.NAME`, `.SYNOPSIS`, `.PLATFORM`, `.CATEGORY`, `.USAGE`, `.WHEN`). Add a row to the tools table above. Claude discovers it automatically next session via `CLAUDE.md`.
 
 **New command:** `.claude/commands/<name>.md` describing the workflow. Add a row to the commands table above.
 

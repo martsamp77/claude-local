@@ -1,6 +1,6 @@
 ---
 name: completing-an-improvement
-description: Use after successfully adding or improving a tool, skill, command, or staging file in this repo. Verifies the change, updates docs, commits with a great message, and pushes to origin.
+description: "[all] Use after successfully adding or improving a tool, skill, command, or staging file in this repo. Verifies the change, updates docs, commits with a great message, and pushes to origin."
 ---
 
 # completing-an-improvement

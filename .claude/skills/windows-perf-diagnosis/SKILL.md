@@ -1,13 +1,13 @@
 ---
-name: performance-diagnosis
-description: Diagnose Windows performance issues — slow/unresponsive machine, high CPU or RAM. Use when Marty reports sluggishness or when interpreting perf-snapshot output.
+name: windows-perf-diagnosis
+description: "[windows] Diagnose Windows performance issues — slow/unresponsive machine, high CPU or RAM. Use when Marty reports sluggishness or when interpreting perf-snapshot output."
 ---
 
-# performance-diagnosis
+# windows-perf-diagnosis
 
 Use this skill when:
 - Marty says the machine is slow, unresponsive, or laggy
-- Interpreting output from `tools/diagnostics/perf-snapshot.ps1`
+- Interpreting output from `tools/windows/diagnostics/perf-snapshot.ps1`
 - Deciding which running processes to kill, cap, or disable
 
 ## Tools available
@@ -16,10 +16,10 @@ Run from the repo root (relative paths, no elevation needed):
 
 ```powershell
 # One-shot snapshot — use this first
-.\tools\diagnostics\perf-snapshot.ps1 [-Top 15] [-SaveLog]
+.\tools\windows\diagnostics\perf-snapshot.ps1 [-Top 15] [-SaveLog]
 
 # Continuous monitor — use to catch intermittent spikes
-.\tools\diagnostics\perf-watch.ps1 [-IntervalSec 5] [-CpuThreshold 25] [-RamThresholdMb 800]
+.\tools\windows\diagnostics\perf-watch.ps1 [-IntervalSec 5] [-CpuThreshold 25] [-RamThresholdMb 800]
 ```
 
 Saved logs land in `logs/diagnostics/` (gitignored).
@@ -102,4 +102,4 @@ If Marty hasn't run a snapshot yet:
 I'll run a quick snapshot to see what's going on.
 ```
 
-Then: `.\tools\diagnostics\perf-snapshot.ps1 -SaveLog`
+Then: `.\tools\windows\diagnostics\perf-snapshot.ps1 -SaveLog`

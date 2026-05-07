@@ -1,6 +1,6 @@
 ---
 name: windows-env-vars
-description: Read and persist Windows environment variables (User vs Machine scope) and edit PATH safely. Use whenever a task touches env vars beyond the current shell.
+description: "[windows] Read and persist Windows environment variables (User vs Machine scope) and edit PATH safely. Use whenever a task touches env vars beyond the current shell."
 ---
 
 # windows-env-vars

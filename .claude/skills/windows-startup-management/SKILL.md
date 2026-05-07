@@ -1,9 +1,9 @@
 ---
-name: startup-management
-description: Audit and manage Windows startup items — Run keys, startup folders, logon scheduled tasks, auto-start services. Use when Marty asks what's launching at logon, what to disable, or wants to slim down boot.
+name: windows-startup-management
+description: "[windows] Audit and manage Windows startup items — Run keys, startup folders, logon scheduled tasks, auto-start services. Use when Marty asks what's launching at logon, what to disable, or wants to slim down boot."
 ---
 
-# startup-management
+# windows-startup-management
 
 Use when Marty says any of:
 - "what's launching at startup"
@@ -16,10 +16,10 @@ Use when Marty says any of:
 
 ```powershell
 # Full startup audit across every vector — read-only
-.\tools\startup\startup-inventory.ps1 [-IncludeMicrosoftTasks] [-SaveLog]
+.\tools\windows\startup\startup-inventory.ps1 [-IncludeMicrosoftTasks] [-SaveLog]
 
 # Deep-dive on one or more named scheduled tasks (action / principal / triggers)
-.\tools\startup\inspect-task.ps1 -Name SidebarStartup,StartCN
+.\tools\windows\startup\inspect-task.ps1 -Name SidebarStartup,StartCN
 ```
 
 `startup-inventory.ps1` prints five sections; read all of them before recommending anything. The slash command `/startup` runs the inventory and asks Claude to interpret it.
@@ -121,6 +121,6 @@ That's the WOW6432Node Run key (32-bit installers). Task Manager only shows entr
 
 ## Verification
 
-After any disable, re-run `.\tools\startup\startup-inventory.ps1` to confirm the change took effect. Most disables only show their effect after the next logon, but Run key removals show immediately and service `Stopped` state shows after `Stop-Service`.
+After any disable, re-run `.\tools\windows\startup\startup-inventory.ps1` to confirm the change took effect. Most disables only show their effect after the next logon, but Run key removals show immediately and service `Stopped` state shows after `Stop-Service`.
 
-If Marty wants live confirmation that the process isn't currently running, follow up with the `performance-diagnosis` skill / `perf-snapshot.ps1`.
+If Marty wants live confirmation that the process isn't currently running, follow up with the `windows-perf-diagnosis` skill / `perf-snapshot.ps1`.

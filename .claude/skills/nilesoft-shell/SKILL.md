@@ -1,6 +1,6 @@
 ---
 name: nilesoft-shell
-description: Manage Nilesoft Shell — Windows context-menu replacement. Edit shell.nss configs, change theme, add/modify items, register/unregister via CLI, reload after changes.
+description: "[windows] Manage Nilesoft Shell — Windows context-menu replacement. Edit shell.nss configs, change theme, add/modify items, register/unregister via CLI, reload after changes."
 ---
 
 # nilesoft-shell

@@ -1,8 +1,9 @@
 <#
 .NAME        inspect-task
 .SYNOPSIS    Show full details of one or more scheduled tasks (action, principal, triggers).
+.PLATFORM    windows
 .CATEGORY    startup
-.USAGE       .\tools\startup\inspect-task.ps1 -Name SidebarStartup,StartCN
+.USAGE       .\tools\windows\startup\inspect-task.ps1 -Name SidebarStartup,StartCN
 .WHEN        "what does <task> actually run", "is this task safe to remove",
              before unregister/disable of an unknown scheduled task.
 #>

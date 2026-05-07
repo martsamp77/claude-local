@@ -1,6 +1,6 @@
 ---
 name: windows-registry
-description: Safely read, write, and back up the Windows registry from PowerShell. Use whenever a task involves HKCU/HKLM keys.
+description: "[windows] Safely read, write, and back up the Windows registry from PowerShell. Use whenever a task involves HKCU/HKLM keys."
 ---
 
 # windows-registry

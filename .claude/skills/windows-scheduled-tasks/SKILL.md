@@ -1,9 +1,9 @@
 ---
-name: scheduled-tasks
-description: Create, inspect, and manage Windows scheduled tasks via PowerShell. Use when a task should run on a schedule, at logon, or at startup.
+name: windows-scheduled-tasks
+description: "[windows] Create, inspect, and manage Windows scheduled tasks via PowerShell. Use when a task should run on a schedule, at logon, or at startup."
 ---
 
-# scheduled-tasks
+# windows-scheduled-tasks
 
 Use this skill any time a task should run automatically — on a schedule, at user logon, at system boot, on idle, or on an event. Prefer Task Scheduler over background services for user-context jobs and over `cron`-style hacks.
 

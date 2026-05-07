@@ -1,8 +1,9 @@
 <#
 .NAME        perf-snapshot
 .SYNOPSIS    Capture a one-time performance snapshot: CPU, RAM, disk, top processes, pagefile, power plan, VMs.
+.PLATFORM    windows
 .CATEGORY    diagnostics
-.USAGE       .\tools\diagnostics\perf-snapshot.ps1 [-Top <n>] [-SaveLog]
+.USAGE       .\tools\windows\diagnostics\perf-snapshot.ps1 [-Top <n>] [-SaveLog]
 .WHEN        Machine feels slow or unresponsive; before/after a fix to compare baseline; Outlook+Cursor+Claude all open
 #>
 param(
@@ -10,8 +11,8 @@ param(
     [switch]$SaveLog
 )
 
-$repoRoot  = Resolve-Path (Join-Path $PSScriptRoot '..\..')
-$logDir    = Join-Path $repoRoot 'logs\diagnostics'
+$repoRoot  = Resolve-Path (Join-Path $PSScriptRoot '..\..\..')
+$logDir    = Join-Path $repoRoot 'logs\windows\diagnostics'
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $lines     = [System.Collections.Generic.List[string]]::new()
 

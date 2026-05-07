@@ -1,6 +1,6 @@
 ---
 name: windows-services
-description: Inspect and control Windows services — query state, start/stop/restart, change startup type. Use for service-level admin tasks.
+description: "[windows] Inspect and control Windows services — query state, start/stop/restart, change startup type. Use for service-level admin tasks."
 ---
 
 # windows-services

@@ -29,34 +29,40 @@ All paths below are relative to the repo root.
 
 - **Skills** — `.claude/skills/<name>/SKILL.md`. Each skill is one folder with a `SKILL.md` containing YAML frontmatter (`name`, `description`) and a tight body. Loaded automatically by Claude Code.
 - **Commands** — `.claude/commands/<name>.md`. Slash commands invokable as `/<name>` in Claude Code. Each file describes what Claude should do when the command runs.
-- **Tools** — `tools/<category>/<name>.ps1`. Executable PowerShell scripts. All paths inside scripts are relative (via `$PSScriptRoot`). See **Tool inventory** below.
-- **Staging** — `staging/<area>/`. Config file edits that need elevation to copy into place (e.g. Nilesoft `.nss`, `.reg` files).
-- **Backups** — `backups/<area>/<timestamp>/`. Gitignored. Timestamped snapshots before destructive changes.
-- **Logs** — `logs/<category>/`. Gitignored. Output from tool runs that requested `-SaveLog`.
+- **Tools** — `tools/<os>/<category>/<name>.ps1` (or `.sh` on Linux/macOS). Executable scripts. All paths inside scripts are relative (via `$PSScriptRoot` / `$(dirname "$0")`). See **Tool inventory** below.
+- **Staging** — `staging/<os>/<area>/`. Config file edits that need elevation to copy into place (e.g. Nilesoft `.nss`, `.reg` files on Windows).
+- **Backups** — `backups/<os>/<area>/<timestamp>/`. Gitignored. Timestamped snapshots before destructive changes.
+- **Logs** — `logs/<os>/<category>/`. Gitignored. Output from tool runs that requested `-SaveLog`.
 - **Persistent memory** — `~/.claude/projects/<project-slug>/memory/`. Auto-managed by Claude; lives outside this repo.
 
 ## Tool inventory
 
-At the start of any session where a system, performance, or diagnostic task comes up, run:
+Tools live under `tools/<os>/<category>/`. At the start of any session where a system, performance, or diagnostic task comes up, list the tools for the current OS only:
 
 ```powershell
-Get-ChildItem tools -Recurse -Filter *.ps1 | Select-Object -ExpandProperty FullName
+# Windows:
+Get-ChildItem tools\windows -Recurse -Filter *.ps1 | Select-Object -ExpandProperty FullName
+
+# Linux / macOS / WSL (Linux side):
+find tools/linux tools/macos tools/unix -name '*.sh' 2>/dev/null
 ```
 
-Then read the first 15 lines of each result. The `.SYNOPSIS` and `.WHEN` header fields tell you what each script does and when to reach for it. Run scripts from the repo root:
+Then read the first 15 lines of each result. The `.SYNOPSIS`, `.PLATFORM`, and `.WHEN` header fields tell you what each script does and when to reach for it. Run scripts from the repo root:
 
 ```powershell
-.\tools\<category>\<name>.ps1 [params]
+.\tools\<os>\<category>\<name>.ps1 [params]   # Windows
+./tools/<os>/<category>/<name>.sh [params]     # Linux / macOS
 ```
 
-Every script in `tools/` uses this header format — the `.WHEN` field is the trigger: what Marty says that should make you reach for this tool.
+Every script uses this header format — the `.WHEN` field is the trigger: what Marty says that should make you reach for this tool. Skip scripts whose `.PLATFORM` doesn't match the current OS.
 
 ```powershell
 <#
 .NAME        <name>
 .SYNOPSIS    <one line — what it does>
+.PLATFORM    windows | linux | macos | unix | all
 .CATEGORY    <category folder name>
-.USAGE       .\tools\<category>\<name>.ps1 [params]
+.USAGE       .\tools\<os>\<category>\<name>.ps1 [params]
 .WHEN        <what the user says that should trigger this tool>
 #>
 ```
@@ -82,10 +88,10 @@ When a recurring Windows task doesn't fit any existing skill, create a new one:
 
 When a recurring task would benefit from a reusable script:
 
-1. Pick or create a category folder under `tools/` (e.g. `diagnostics`, `network`, `system`, `startup`).
-2. Add `<name>.ps1` with the standard header block (see Tool inventory above).
-3. Use `$PSScriptRoot` for all relative path resolution inside the script. Never hardcode absolute paths.
-4. If the script produces output worth saving, write to `$repoRoot\logs\<category>\<timestamp>-<name>.txt` behind a `-SaveLog` switch.
+1. Pick the OS subdir (`tools/windows/`, `tools/linux/`, `tools/macos/`, or `tools/unix/` for portable bash) and a category folder under it (e.g. `diagnostics`, `network`, `system`, `startup`).
+2. Add `<name>.ps1` (Windows) or `<name>.sh` (Unix) with the standard header block (see Tool inventory above), including the `.PLATFORM` field.
+3. Use `$PSScriptRoot` (PS) or `$(cd "$(dirname "$0")" && pwd)` (bash) for all relative path resolution inside the script. Never hardcode absolute paths.
+4. If the script produces output worth saving, write to `$repoRoot/logs/<os>/<category>/<timestamp>-<name>.txt` behind a `-SaveLog` switch.
 5. Update the tools table in README.md.
 
 ## Completing a task
@@ -101,19 +107,27 @@ If a task was purely conversational (no files changed), skip 1–4.
 
 ## Existing skills
 
+Each skill's `description` frontmatter starts with a scope tag — `[windows]`, `[linux]`, `[macos]`, `[unix]` (Linux+macOS), or `[all]`. Honor the tag: only use skills whose scope matches the current OS.
+
+**Windows:**
 - `windows-registry` — safe registry read/write with backup
 - `windows-env-vars` — user/machine env vars and PATH editing
 - `winget-packages` — install/upgrade/list/pin via winget
 - `windows-services` — service inspection and control
-- `scheduled-tasks` — Task Scheduler via PowerShell
+- `windows-scheduled-tasks` — Task Scheduler via PowerShell
 - `windows-system-settings` — common Win11 tweaks (taskbar, Explorer, dark mode, privacy)
-- `dev-environment` — git, SSH, WSL, language toolchains
+- `windows-perf-diagnosis` — diagnose slow/unresponsive machine; interpret perf-snapshot output; known hogs
+- `windows-startup-management` — audit Run keys, startup folders, logon scheduled tasks, auto-start services; triage what to disable
 - `nilesoft-shell` — context-menu customization via Nilesoft Shell (.nss configs, register/unregister, themes)
-- `performance-diagnosis` — diagnose slow/unresponsive machine; interpret perf-snapshot output; known hogs
-- `startup-management` — audit Run keys, startup folders, logon scheduled tasks, auto-start services; triage what to disable
+- `dev-environment` — git, SSH, WSL, language toolchains (currently Windows-biased; planned split into windows/unix variants)
+
+**Cross-platform (`[all]`):**
 - `completing-an-improvement` — full ship cycle for a verified repo improvement: docs, commit, push
+
+Linux and macOS skills will be added in subsequent phases.
 
 ## Existing commands
 
-- `/perf` — run a performance snapshot and get an interpreted summary with recommended actions
-- `/startup` — audit startup items and recommend what to disable
+- `/perf` — run a performance snapshot and get an interpreted summary with recommended actions (currently Windows; OS dispatch planned)
+- `/startup` — audit startup items and recommend what to disable (Windows-only; no equivalent planned for Linux/macOS — startup vectors differ)
+- `/ship` — commit any uncommitted work and push to the remote (cross-platform)

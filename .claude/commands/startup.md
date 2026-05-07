@@ -1,9 +1,9 @@
 Audit Windows startup items and recommend what to disable.
 
 Steps:
-1. Run `.\tools\startup\startup-inventory.ps1 -SaveLog` using the PowerShell tool.
-2. Read the output using the `startup-management` skill.
-3. For any unfamiliar scheduled task at root path (`\<name>` not `\Microsoft\*`), run `.\tools\startup\inspect-task.ps1 -Name <name>` to see what it actually launches.
+1. Run `.\tools\windows\startup\startup-inventory.ps1 -SaveLog` using the PowerShell tool. (Windows-only; no Linux/macOS equivalent planned — startup vectors differ entirely.)
+2. Read the output using the `windows-startup-management` skill.
+3. For any unfamiliar scheduled task at root path (`\<name>` not `\Microsoft\*`), run `.\tools\windows\startup\inspect-task.ps1 -Name <name>` to see what it actually launches.
 4. Group findings into the three triage tiers from the skill:
    - **Disable freely** — known runaway hogs / inactive apps (Logi Options+, Razer if unused, Adobe stack, telemetry services).
    - **Investigate** — `NO-RECORD` entries in WOW6432Node, unknown scheduled tasks, hardware-vendor items that look ambiguous.

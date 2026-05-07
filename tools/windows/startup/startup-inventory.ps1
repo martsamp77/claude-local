@@ -1,8 +1,9 @@
 <#
 .NAME        startup-inventory
 .SYNOPSIS    Read-only audit of every Windows startup vector with enable/disable state.
+.PLATFORM    windows
 .CATEGORY    startup
-.USAGE       .\tools\startup\startup-inventory.ps1 [-IncludeMicrosoftTasks] [-SaveLog]
+.USAGE       .\tools\windows\startup\startup-inventory.ps1 [-IncludeMicrosoftTasks] [-SaveLog]
 .WHEN        "what's launching at startup", "audit my startup items", "what should I disable",
              "why is my machine slow on boot", before recommending startup changes.
 #>
@@ -15,8 +16,8 @@ param(
 
 $ErrorActionPreference = 'Continue'
 
-# Resolve repo root from script location (tools/startup/ -> repo root)
-$repoRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+# Resolve repo root from script location (tools/windows/startup/ -> repo root)
+$repoRoot = Split-Path -Parent (Split-Path -Parent (Split-Path -Parent $PSScriptRoot))
 
 # StartupApproved byte[0] state decode
 function Get-StartupApprovedState {
@@ -169,7 +170,7 @@ $out | ForEach-Object { Write-Output $_ }
 
 # Optional log file
 if ($SaveLog) {
-    $logDir = Join-Path $repoRoot 'logs\startup'
+    $logDir = Join-Path $repoRoot 'logs\windows\startup'
     if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Path $logDir -Force | Out-Null }
     $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
     $logFile = Join-Path $logDir "$stamp-startup-inventory.txt"

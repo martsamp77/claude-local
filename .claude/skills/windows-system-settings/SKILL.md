@@ -1,6 +1,6 @@
 ---
 name: windows-system-settings
-description: Common Windows 11 UI/UX tweaks — Explorer, taskbar, dark mode, privacy, focus. Mostly registry-backed; restart Explorer to apply.
+description: "[windows] Common Windows 11 UI/UX tweaks — Explorer, taskbar, dark mode, privacy, focus. Mostly registry-backed; restart Explorer to apply."
 ---
 
 # windows-system-settings

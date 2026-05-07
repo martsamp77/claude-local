@@ -1,6 +1,6 @@
 ---
 name: dev-environment
-description: Set up and manage developer toolchains on Windows — git, SSH, language runtimes, WSL, PowerShell profile. Use when configuring dev tools.
+description: "[windows] Set up and manage developer toolchains on Windows — git, SSH, language runtimes, WSL, PowerShell profile. Use when configuring dev tools. (Will be split into windows/unix variants in Phase 5.)"
 ---
 
 # dev-environment
