@@ -164,13 +164,18 @@ Each skill's `description` frontmatter starts with a scope tag — `[windows]`, 
 - `linux-packages` — distro-aware package management (apt/dnf/pacman) with hold/pin support
 - `linux-env-vars` — per-user / system-wide env var locations; PATH editing; reload semantics
 
+**macOS:**
+- `macos-perf-diagnosis` — diagnose slow Mac / beachballs / fan noise; interpret perf-snapshot.sh output
+- `macos-launchd` — inspect/control LaunchAgents and LaunchDaemons; plist authoring; SIP rules
+- `macos-homebrew` — `brew` for formulae + casks; install/upgrade/pin; Brewfile snapshot/restore
+- `macos-defaults` — read/write app + system preferences (Dock, Finder, Safari, NSGlobalDomain); killall to apply
+- `macos-env-vars` — zsh hierarchy (`.zshrc`/`.zprofile`/`.zshenv`); `/etc/paths` and `paths.d`; GUI-app env via launchctl
+
 **Cross-platform (`[all]`):**
 - `completing-an-improvement` — full ship cycle for a verified repo improvement: docs, commit, push
 
-macOS skills will be added in Phase 4 of the multi-OS migration.
-
 ## Existing commands
 
-- `/perf` — run a performance snapshot and get an interpreted summary; dispatches to `windows-perf-diagnosis` on win32 or `linux-perf-diagnosis` on linux (macOS planned)
+- `/perf` — run a performance snapshot and get an interpreted summary; dispatches by Platform: win32 → `windows-perf-diagnosis`, linux → `linux-perf-diagnosis`, darwin → `macos-perf-diagnosis`
 - `/startup` — audit startup items and recommend what to disable (Windows-only; no equivalent planned for Linux/macOS — startup vectors differ)
 - `/ship` — commit any uncommitted work and push to the remote (cross-platform)

@@ -10,7 +10,7 @@ When Marty opens Claude Code in this directory on any machine, `CLAUDE.md` is au
 |---|---|---|---|
 | Windows 11 | ✅ Full | 10 (`windows-*`, `winget-packages`, `nilesoft-shell`, `dev-environment`) | 4 (perf, startup) |
 | Linux | ✅ Baseline | 4 (`linux-perf-diagnosis`, `linux-systemd`, `linux-packages`, `linux-env-vars`) | 1 (`perf-snapshot.sh`) |
-| macOS | 🚧 Skeleton planned | none yet (Phase 4) | none yet |
+| macOS | ✅ Baseline | 5 (`macos-perf-diagnosis`, `macos-launchd`, `macos-homebrew`, `macos-defaults`, `macos-env-vars`) | 1 (`perf-snapshot.sh`) |
 | WSL | ↪ Treated as Linux | inherits Linux scope; flags `/mnt/c/...` writes | inherits Linux |
 | All OSes | ✅ | `completing-an-improvement` | `/ship` command |
 
@@ -109,7 +109,13 @@ claude-local/
 
 ### macOS (`[macos]`)
 
-_None yet — planned in Phase 4: `macos-launchd`, `macos-homebrew`, `macos-defaults`, `macos-env-vars`, `macos-perf-diagnosis`._
+| Skill | What it covers |
+|---|---|
+| [`macos-perf-diagnosis`](.claude/skills/macos-perf-diagnosis/SKILL.md) | Diagnose slow Mac / beachballs / fan noise; interpret `perf-snapshot.sh` output; common hogs (kernel_task, WindowServer, mds_stores) |
+| [`macos-launchd`](.claude/skills/macos-launchd/SKILL.md) | LaunchAgents vs LaunchDaemons; bootstrap/bootout; plist authoring; SIP-protected paths; critical-service list |
+| [`macos-homebrew`](.claude/skills/macos-homebrew/SKILL.md) | `brew` for formulae + casks; install/upgrade/pin/cleanup; tap; Brewfile; Apple Silicon vs Intel paths |
+| [`macos-defaults`](.claude/skills/macos-defaults/SKILL.md) | `defaults read/write` for Dock/Finder/Safari/NSGlobalDomain; killall to apply; backup pattern |
+| [`macos-env-vars`](.claude/skills/macos-env-vars/SKILL.md) | zsh hierarchy (`.zshrc`/`.zprofile`/`.zshenv`); `/etc/paths` and `paths.d/`; `launchctl setenv` for GUI |
 
 ### Cross-platform (`[all]`)
 
@@ -138,13 +144,15 @@ Scripts Claude can run directly. All paths are relative — no hardcoded machine
 
 ### macOS (`tools/macos/`)
 
-_None yet — planned in Phase 4. Will mirror the Linux structure using `top -l 1`, `vm_stat`, `df`, `ps`._
+| Script | What it does | Key params |
+|---|---|---|
+| `tools/macos/diagnostics/perf-snapshot.sh` | One-shot snapshot: macOS version, model + chip (Apple Silicon perf/efficiency cores), memory (`vm_stat`), swap, disks, power/battery, top by CPU+RAM, Mac-specific known-hog check (kernel_task, WindowServer, mds_stores, etc.) | `-t TOP` (default 15), `-l` (save log) |
 
 ## Commands
 
 | Command | OS scope | What it does |
 |---|---|---|
-| `/perf` | Windows + Linux (macOS planned) | Run perf-snapshot, interpret output, return top issues + recommended actions; dispatches by `Platform:` |
+| `/perf` | All (Windows + Linux + macOS) | Run perf-snapshot, interpret output, return top issues + recommended actions; dispatches by `Platform:` |
 | `/startup` | Windows only | Run startup-inventory, classify items into disable / investigate / leave-alone tiers, stage commands |
 | `/ship` | All | Commit any uncommitted work (with doc check) and push to the remote |
 
