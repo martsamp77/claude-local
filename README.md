@@ -8,7 +8,7 @@ When Marty opens Claude Code in this directory on any machine, `CLAUDE.md` is au
 
 | OS | Status | Skills available | Tools available |
 |---|---|---|---|
-| Windows 11 | ✅ Full | 10 (`windows-*`, `winget-packages`, `nilesoft-shell`, `dev-environment`) | 4 (perf, startup) |
+| Windows 11 | ✅ Full | 10 (`windows-*`, `winget-packages`, `nilesoft-shell`) | 4 (perf, startup) |
 | Linux | ✅ Baseline | 4 (`linux-perf-diagnosis`, `linux-systemd`, `linux-packages`, `linux-env-vars`) | 1 (`perf-snapshot.sh`) |
 | macOS | ✅ Baseline | 5 (`macos-perf-diagnosis`, `macos-launchd`, `macos-homebrew`, `macos-defaults`, `macos-env-vars`) | 1 (`perf-snapshot.sh`) |
 | WSL | ↪ Treated as Linux | inherits Linux scope; flags `/mnt/c/...` writes | inherits Linux |
@@ -47,7 +47,8 @@ claude-local/
 │       ├── windows-services/                # [windows]
 │       ├── windows-scheduled-tasks/         # [windows]
 │       ├── windows-system-settings/         # [windows]
-│       ├── dev-environment/                 # [windows] (split planned)
+│       ├── windows-dev-environment/         # [windows]
+│       ├── unix-dev-environment/            # [unix] (Linux + macOS)
 │       ├── nilesoft-shell/                  # [windows]
 │       ├── windows-perf-diagnosis/          # [windows]
 │       ├── windows-startup-management/      # [windows]
@@ -93,7 +94,7 @@ claude-local/
 | [`windows-services`](.claude/skills/windows-services/SKILL.md) | `Get-Service` / `Set-Service`; startup type; critical-service warning list |
 | [`windows-scheduled-tasks`](.claude/skills/windows-scheduled-tasks/SKILL.md) | `Register-ScheduledTask`; logon vs daily vs startup triggers; SYSTEM vs interactive |
 | [`windows-system-settings`](.claude/skills/windows-system-settings/SKILL.md) | Common Win11 tweaks (Explorer, taskbar, dark mode, privacy); restart-Explorer pattern |
-| [`dev-environment`](.claude/skills/dev-environment/SKILL.md) | git config, SSH keys, WSL setup, Node/Python/Go/Rust/.NET install; PowerShell `$PROFILE`. (Will be split into `windows-dev-environment` and `unix-dev-environment` in Phase 5.) |
+| [`windows-dev-environment`](.claude/skills/windows-dev-environment/SKILL.md) | git config, SSH (ssh-agent service), WSL setup, Node/Python/Go/Rust/.NET install via winget+nvm-windows; PowerShell `$PROFILE`; VS Code; Windows Terminal |
 | [`nilesoft-shell`](.claude/skills/nilesoft-shell/SKILL.md) | `.nss` syntax; CLI flags; runtime modifier shortcuts; reload mechanics |
 | [`windows-perf-diagnosis`](.claude/skills/windows-perf-diagnosis/SKILL.md) | Diagnose slow/unresponsive machine; interpret snapshot output; known hogs and fixes |
 | [`windows-startup-management`](.claude/skills/windows-startup-management/SKILL.md) | Audit startup items across Run keys / folders / scheduled tasks / services; triage tiers; disable patterns |
@@ -116,6 +117,12 @@ claude-local/
 | [`macos-homebrew`](.claude/skills/macos-homebrew/SKILL.md) | `brew` for formulae + casks; install/upgrade/pin/cleanup; tap; Brewfile; Apple Silicon vs Intel paths |
 | [`macos-defaults`](.claude/skills/macos-defaults/SKILL.md) | `defaults read/write` for Dock/Finder/Safari/NSGlobalDomain; killall to apply; backup pattern |
 | [`macos-env-vars`](.claude/skills/macos-env-vars/SKILL.md) | zsh hierarchy (`.zshrc`/`.zprofile`/`.zshenv`); `/etc/paths` and `paths.d/`; `launchctl setenv` for GUI |
+
+### Linux + macOS (`[unix]`)
+
+| Skill | What it covers |
+|---|---|
+| [`unix-dev-environment`](.claude/skills/unix-dev-environment/SKILL.md) | git config + credential helpers (libsecret on Linux, osxkeychain on macOS); SSH (ssh-agent on Linux/macOS); language runtimes via mise/asdf or native pkg managers; bash/zsh shell profiles; VS Code; terminal emulators |
 
 ### Cross-platform (`[all]`)
 

@@ -156,7 +156,7 @@ Each skill's `description` frontmatter starts with a scope tag — `[windows]`, 
 - `windows-perf-diagnosis` — diagnose slow/unresponsive machine; interpret perf-snapshot output; known hogs
 - `windows-startup-management` — audit Run keys, startup folders, logon scheduled tasks, auto-start services; triage what to disable
 - `nilesoft-shell` — context-menu customization via Nilesoft Shell (.nss configs, register/unregister, themes)
-- `dev-environment` — git, SSH, WSL, language toolchains (currently Windows-biased; planned split into windows/unix variants)
+- `windows-dev-environment` — git, SSH, WSL, language toolchains, PowerShell profile, VS Code on Windows
 
 **Linux:**
 - `linux-perf-diagnosis` — diagnose slow/unresponsive Linux box; interpret perf-snapshot.sh output
@@ -170,6 +170,9 @@ Each skill's `description` frontmatter starts with a scope tag — `[windows]`, 
 - `macos-homebrew` — `brew` for formulae + casks; install/upgrade/pin; Brewfile snapshot/restore
 - `macos-defaults` — read/write app + system preferences (Dock, Finder, Safari, NSGlobalDomain); killall to apply
 - `macos-env-vars` — zsh hierarchy (`.zshrc`/`.zprofile`/`.zshenv`); `/etc/paths` and `paths.d`; GUI-app env via launchctl
+
+**Linux + macOS (`[unix]`):**
+- `unix-dev-environment` — git, SSH, language toolchains via mise/asdf, shell profile, VS Code on Linux/macOS
 
 **Cross-platform (`[all]`):**
 - `completing-an-improvement` — full ship cycle for a verified repo improvement: docs, commit, push

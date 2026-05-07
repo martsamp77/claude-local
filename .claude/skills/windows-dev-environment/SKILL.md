@@ -1,9 +1,9 @@
 ---
-name: dev-environment
-description: "[windows] Set up and manage developer toolchains on Windows — git, SSH, language runtimes, WSL, PowerShell profile. Use when configuring dev tools. (Will be split into windows/unix variants in Phase 5.)"
+name: windows-dev-environment
+description: "[windows] Set up and manage developer toolchains on Windows — git, SSH, language runtimes, WSL, PowerShell profile, VS Code, Windows Terminal. Use when configuring dev tools on a Windows machine."
 ---
 
-# dev-environment
+# windows-dev-environment
 
 Use this skill when configuring or maintaining developer tooling: language runtimes, git, SSH keys, WSL, PowerShell profile. Defers to `winget-packages` for installation, `windows-env-vars` for PATH, `windows-registry` for low-level config.
 
@@ -163,10 +163,10 @@ code --list-extensions
 code --install-extension <publisher.name>
 ```
 
-For per-machine reproducibility, export the extension list to the workspace:
+For per-machine reproducibility, export the extension list to a backup file in this repo (path is repo-relative — run from the repo root):
 
 ```powershell
-code --list-extensions > C:\DATA\Workspace-37m\claude-local\backups\vscode-extensions.txt
+code --list-extensions > backups\windows\vscode-extensions.txt
 ```
 
 ## Windows Terminal
