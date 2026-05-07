@@ -158,13 +158,19 @@ Each skill's `description` frontmatter starts with a scope tag — `[windows]`, 
 - `nilesoft-shell` — context-menu customization via Nilesoft Shell (.nss configs, register/unregister, themes)
 - `dev-environment` — git, SSH, WSL, language toolchains (currently Windows-biased; planned split into windows/unix variants)
 
+**Linux:**
+- `linux-perf-diagnosis` — diagnose slow/unresponsive Linux box; interpret perf-snapshot.sh output
+- `linux-systemd` — inspect/control systemd units; journalctl; critical-unit safety list
+- `linux-packages` — distro-aware package management (apt/dnf/pacman) with hold/pin support
+- `linux-env-vars` — per-user / system-wide env var locations; PATH editing; reload semantics
+
 **Cross-platform (`[all]`):**
 - `completing-an-improvement` — full ship cycle for a verified repo improvement: docs, commit, push
 
-Linux and macOS skills will be added in subsequent phases.
+macOS skills will be added in Phase 4 of the multi-OS migration.
 
 ## Existing commands
 
-- `/perf` — run a performance snapshot and get an interpreted summary with recommended actions (currently Windows; OS dispatch planned)
+- `/perf` — run a performance snapshot and get an interpreted summary; dispatches to `windows-perf-diagnosis` on win32 or `linux-perf-diagnosis` on linux (macOS planned)
 - `/startup` — audit startup items and recommend what to disable (Windows-only; no equivalent planned for Linux/macOS — startup vectors differ)
 - `/ship` — commit any uncommitted work and push to the remote (cross-platform)

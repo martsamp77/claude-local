@@ -9,7 +9,7 @@ When Marty opens Claude Code in this directory on any machine, `CLAUDE.md` is au
 | OS | Status | Skills available | Tools available |
 |---|---|---|---|
 | Windows 11 | ✅ Full | 10 (`windows-*`, `winget-packages`, `nilesoft-shell`, `dev-environment`) | 4 (perf, startup) |
-| Linux | 🚧 Skeleton planned | none yet (Phase 3) | none yet |
+| Linux | ✅ Baseline | 4 (`linux-perf-diagnosis`, `linux-systemd`, `linux-packages`, `linux-env-vars`) | 1 (`perf-snapshot.sh`) |
 | macOS | 🚧 Skeleton planned | none yet (Phase 4) | none yet |
 | WSL | ↪ Treated as Linux | inherits Linux scope; flags `/mnt/c/...` writes | inherits Linux |
 | All OSes | ✅ | `completing-an-improvement` | `/ship` command |
@@ -100,7 +100,12 @@ claude-local/
 
 ### Linux (`[linux]`)
 
-_None yet — planned in Phase 3: `linux-systemd`, `linux-packages` (apt/dnf/pacman), `linux-env-vars`, `linux-perf-diagnosis`._
+| Skill | What it covers |
+|---|---|
+| [`linux-perf-diagnosis`](.claude/skills/linux-perf-diagnosis/SKILL.md) | Diagnose slow/unresponsive Linux box; interpret `perf-snapshot.sh` output; hogs and triage tree |
+| [`linux-systemd`](.claude/skills/linux-systemd/SKILL.md) | Inspect/control systemd units (system + user); enable/disable/mask; journalctl; critical-unit safety list |
+| [`linux-packages`](.claude/skills/linux-packages/SKILL.md) | Distro-aware package management — apt (Debian/Ubuntu), dnf (Fedora/RHEL), pacman (Arch); install/remove/upgrade/hold/pin |
+| [`linux-env-vars`](.claude/skills/linux-env-vars/SKILL.md) | `.profile` / `.bashrc` / `.zshrc` / `/etc/environment` / `/etc/profile.d/`; PATH editing; reload semantics |
 
 ### macOS (`[macos]`)
 
@@ -125,15 +130,21 @@ Scripts Claude can run directly. All paths are relative — no hardcoded machine
 | `tools/windows/startup/startup-inventory.ps1` | Read-only audit: Run keys (incl. WOW6432), startup folders, logon/boot tasks, auto-start services, with enable/disable state | `-IncludeMicrosoftTasks`, `-SaveLog` |
 | `tools/windows/startup/inspect-task.ps1` | Show full details of named scheduled task(s): action, principal, triggers | `-Name <task>[,<task>...]` |
 
-### Linux (`tools/linux/`) and macOS (`tools/macos/`)
+### Linux (`tools/linux/`)
 
-_None yet — planned in Phases 3 & 4. Linux/macOS perf-snapshot equivalents will mirror the Windows version's section structure but use `top`/`free`/`/proc` (Linux) and `top -l 1`/`vm_stat` (macOS)._
+| Script | What it does | Key params |
+|---|---|---|
+| `tools/linux/diagnostics/perf-snapshot.sh` | One-shot snapshot: distro, kernel, load, CPU, RAM, swap, disk, top processes by CPU+RAM, known-hog check | `-t TOP` (default 15), `-l` (save log) |
+
+### macOS (`tools/macos/`)
+
+_None yet — planned in Phase 4. Will mirror the Linux structure using `top -l 1`, `vm_stat`, `df`, `ps`._
 
 ## Commands
 
 | Command | OS scope | What it does |
 |---|---|---|
-| `/perf` | Windows (Linux/macOS planned) | Run perf-snapshot, interpret output, return top issues + recommended actions |
+| `/perf` | Windows + Linux (macOS planned) | Run perf-snapshot, interpret output, return top issues + recommended actions; dispatches by `Platform:` |
 | `/startup` | Windows only | Run startup-inventory, classify items into disable / investigate / leave-alone tiers, stage commands |
 | `/ship` | All | Commit any uncommitted work (with doc check) and push to the remote |
 
