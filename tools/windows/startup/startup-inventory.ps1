@@ -1,4 +1,4 @@
-<#
+﻿<#
 .NAME        startup-inventory
 .SYNOPSIS    Read-only audit of every Windows startup vector with enable/disable state.
 .PLATFORM    windows

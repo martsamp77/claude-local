@@ -1,4 +1,4 @@
-<#
+﻿<#
 .NAME        perf-snapshot
 .SYNOPSIS    Capture a one-time performance snapshot: CPU, RAM, disk, top processes, pagefile, power plan, VMs.
 .PLATFORM    windows
