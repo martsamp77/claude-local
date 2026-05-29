@@ -68,6 +68,7 @@ All paths below are relative to the repo root.
 - **Hooks** — `.claude/hooks/<name>.ps1`, registered in `.claude/settings.json`. `pwsh` scripts Claude Code runs automatically on events. Currently: `guard-destructive.ps1` (`PreToolUse` — warns on destructive system commands, never blocks) and `session-start.ps1` (`SessionStart` — injects the OS tool inventory + perf-capture monitor status). Cross-OS via `pwsh`; Linux/macOS need PowerShell installed (see `.claude/hooks/README.md`).
 - **Agents** — `.claude/agents/<name>.md` (frontmatter `name`, `description`, optional `tools`/`model`). Subagents Claude can delegate to. Currently: `perf-analyst` (read-only capture-log analysis).
 - **Tools** — `tools/<os>/<category>/<name>.ps1` (or `.sh` on Linux/macOS; `tools/unix/` for portable bash shared by Linux + macOS). Executable scripts. All paths inside scripts are relative (via `$PSScriptRoot` / `$(dirname "$0")`). See **Tool inventory** below.
+- **Docs** — `docs/<os>/<name>.md`. Tracked (not gitignored) runbooks / root-cause diagnoses that accompany a tool or skill — the long-form "why + how to recover" a `SKILL.md` is too tight to hold (e.g. `docs/windows/scantopdf-lockup-runbook.md`).
 - **Staging** — `staging/<os>/<area>/`. Config file edits that need elevation to copy into place (e.g. Nilesoft `.nss`, `.reg` files on Windows).
 - **Backups** — `backups/<os>/<area>/<timestamp>/`. Gitignored. Timestamped snapshots before destructive changes.
 - **Logs** — `logs/<os>/<category>/`. Gitignored. Output from tool runs that requested `-SaveLog`.

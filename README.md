@@ -8,7 +8,7 @@ When Marty opens Claude Code in this directory on any machine, `CLAUDE.md` is au
 
 | OS | Status | Skills available | Tools available |
 |---|---|---|---|
-| Windows 11 | ✅ Full | 11 (`windows-*`, `winget-packages`, `nilesoft-shell`) | 6 (perf ×4, startup ×2) |
+| Windows 11 | ✅ Full | 11 (`windows-*`, `winget-packages`, `nilesoft-shell`) | 8 (perf ×4, startup ×2, monitoring ×2) |
 | Linux | ✅ Baseline | 4 (`linux-perf-diagnosis`, `linux-systemd`, `linux-packages`, `linux-env-vars`) | 1 native + 2 shared (`tools/unix`) |
 | macOS | ✅ Baseline | 5 (`macos-perf-diagnosis`, `macos-launchd`, `macos-homebrew`, `macos-defaults`, `macos-env-vars`) | 1 native + 2 shared (`tools/unix`) |
 | WSL | ↪ Treated as Linux | inherits Linux scope; flags `/mnt/c/...` writes | inherits Linux |
@@ -59,6 +59,9 @@ claude-local/
 │       ├── windows-hello-diagnosis/         # [windows]
 │       ├── perf-capture/                     # [all]
 │       └── completing-an-improvement/        # [all]
+├── docs/                              # Tracked runbooks / root-cause diagnoses, by OS
+│   └── windows/
+│       └── scantopdf-lockup-runbook.md  # ScanToPDF lockup diagnosis + auto-recovery
 ├── tools/                             # Executable scripts, organized by OS
 │   ├── windows/                       # PowerShell — .ps1
 │   │   ├── diagnostics/
@@ -66,9 +69,12 @@ claude-local/
 │   │   │   ├── perf-watch.ps1         # Continuous threshold monitor (interactive)
 │   │   │   ├── perf-capture.ps1       # Unattended background monitor -> log (intermittent)
 │   │   │   └── perf-analyze.ps1       # Parse a capture log -> culprits + slow windows
-│   │   └── startup/
-│   │       ├── startup-inventory.ps1  # Read-only audit of every startup vector
-│   │       └── inspect-task.ps1       # Deep-dive on named scheduled task(s)
+│   │   ├── startup/
+│   │   │   ├── startup-inventory.ps1  # Read-only audit of every startup vector
+│   │   │   └── inspect-task.ps1       # Deep-dive on named scheduled task(s)
+│   │   └── monitoring/
+│   │       ├── scantopdf-watchdog.ps1          # Self-healing watchdog for ScanToPDF (MD-FS01)
+│   │       └── install-scantopdf-watchdog.ps1  # Installer: SYSTEM task + event-log source + batch cap
 │   ├── linux/                         # bash — .sh (perf-snapshot.sh)
 │   ├── macos/                         # bash — .sh (perf-snapshot.sh)
 │   └── unix/                          # portable bash for Linux + macOS
@@ -157,6 +163,8 @@ Scripts Claude can run directly. All paths are relative — no hardcoded machine
 | `tools/windows/diagnostics/perf-analyze.ps1` | Parse a perf-capture log into ranked culprits, slow-time windows, and an optional time-focused view | `-Path`, `-Around HH:mm`, `-WindowMin`, `-CpuPct` |
 | `tools/windows/startup/startup-inventory.ps1` | Read-only audit: Run keys (incl. WOW6432), startup folders, logon/boot tasks, auto-start services, with enable/disable state | `-IncludeMicrosoftTasks`, `-SaveLog` |
 | `tools/windows/startup/inspect-task.ps1` | Show full details of named scheduled task(s): action, principal, triggers | `-Name <task>[,<task>...]` |
+| `tools/windows/monitoring/scantopdf-watchdog.ps1` | Self-healing watchdog for ScanToPDF (MD-FS01): restarts the stopped service, kills the hung UI / orphaned OCR engines, quarantines oversized poison PDFs, alerts to Teams + event log | `-DryRun`, `-SaveLog`, `-QuarantineSizeMB`, `-NoAlert` |
+| `tools/windows/monitoring/install-scantopdf-watchdog.ps1` | Installs the watchdog: registers the SYSTEM scheduled task, ensures the event-log source, provisions the Teams webhook, caps `maxBatchCount`. Run elevated | `-DryRun`, `-IntervalMinutes`, `-BatchCap`, `-WebhookUrl`, `-Uninstall` |
 
 ### Linux (`tools/linux/`)
 
