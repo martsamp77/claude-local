@@ -1,6 +1,6 @@
 # claude-local — multi-OS sysadmin workspace
 
-This repo is Marty's home base for system-administration tasks across Windows, Linux, and macOS. One git checkout, synced across machines via push/pull. Per-machine artifacts (backups, logs) are gitignored so they don't collide.
+This repo is a home base for system-administration tasks across Windows, Linux, and macOS. One git checkout, synced across machines via push/pull. Per-machine artifacts (backups, logs) are gitignored so they don't collide.
 
 This is not a code project. There's no app to build, no tests to run. Tasks are sysadmin-flavored: *change something on this machine safely*.
 
@@ -26,9 +26,9 @@ Primary tool: `PowerShell` (PowerShell 7+ / `pwsh`). `Bash` (Git for Windows) is
 Safety:
 - **Confirm before destructive system changes.** Stopping critical services, deleting registry keys, uninstalling packages, removing scheduled tasks — pause and confirm.
 - **Back up the registry before edits.** Use `reg export <key> <path>.reg` before any `Set-ItemProperty` / `New-Item` / `Remove-Item` against the registry. Save backups to `backups\windows\registry\` (relative to repo root) with a timestamped filename.
-- **HKLM requires explicit confirmation.** `HKCU` changes affect only this user and are reversible — proceed with normal care. `HKLM` (machine-wide) changes need a clear "yes go ahead" from Marty before each write.
+- **HKLM requires explicit confirmation.** `HKCU` changes affect only this user and are reversible — proceed with normal care. `HKLM` (machine-wide) changes need a clear "yes go ahead" from the user before each write.
 - **Never disable UAC, Defender, SmartScreen, or Windows Update** without an explicit instruction naming the thing to disable.
-- **Don't auto-elevate.** If something needs admin (`HKLM`, system services, machine env vars), say so and let Marty re-launch the shell elevated rather than chaining `Start-Process -Verb RunAs`.
+- **Don't auto-elevate.** If something needs admin (`HKLM`, system services, machine env vars), say so and let the user re-launch the shell elevated rather than chaining `Start-Process -Verb RunAs`.
 
 ### When on Linux (`Platform: linux`)
 
@@ -37,9 +37,9 @@ Primary tool: `Bash`. Detect distro via `/etc/os-release` to choose between `apt
 Safety:
 - **Confirm before destructive system changes.** Stopping `systemd` units the system depends on, removing packages, editing files under `/etc/`, modifying `/etc/fstab` or `/etc/sudoers`, killing processes — pause and confirm.
 - **Back up files under `/etc/` before edits.** Copy to `backups/linux/etc/<timestamp>/` (relative to repo root) before editing in place.
-- **System-wide changes require explicit confirmation.** Per-user changes (`~/.bashrc`, `~/.config/`, user systemd units under `~/.config/systemd/user/`) are reversible — proceed with care. System-wide changes (`/etc/`, system units, `apt` install/remove) need a clear "yes" from Marty before each write.
+- **System-wide changes require explicit confirmation.** Per-user changes (`~/.bashrc`, `~/.config/`, user systemd units under `~/.config/systemd/user/`) are reversible — proceed with care. System-wide changes (`/etc/`, system units, `apt` install/remove) need a clear "yes" from the user before each write.
 - **Never modify SELinux/AppArmor enforcement, firewall rules, or sshd config** without an explicit instruction naming the thing.
-- **Don't auto-elevate.** If a command needs `sudo`, print it and let Marty run it; don't pipe to `sudo` silently.
+- **Don't auto-elevate.** If a command needs `sudo`, print it and let the user run it; don't pipe to `sudo` silently.
 
 ### When on macOS (`Platform: darwin`)
 
@@ -93,7 +93,7 @@ Then read the first 15 lines of each result. The `.SYNOPSIS`, `.PLATFORM`, and `
 ./tools/<os>/<category>/<name>.sh [params]     # Linux / macOS
 ```
 
-Every script uses this header format — the `.WHEN` field is the trigger: what Marty says that should make you reach for this tool. Skip scripts whose `.PLATFORM` doesn't match the current OS.
+Every script uses this header format — the `.WHEN` field is the trigger: what the user says that should make you reach for this tool. Skip scripts whose `.PLATFORM` doesn't match the current OS.
 
 ```powershell
 <#
@@ -159,7 +159,7 @@ After any task that adds or modifies a tool, skill, command, staging file, or an
 1. **Verify** — smoke-test the change. Don't claim it works without running it.
 2. **Update documentation** — if you added a skill, tool, or command, add a row to the relevant table in README.md and a one-line entry in the appropriate list in CLAUDE.md (if it isn't already there). If you modified one, update its description.
 3. **Commit** — stage the changed files explicitly by name and commit with a clear message describing what changed and why. Use the `Co-Authored-By` trailer. Do not commit `backups/` or `logs/`.
-4. **Push for successful improvements.** When the change is a real improvement to the project (new tool/skill/command, or material enhancement of one) and verification passed, push to origin. The `completing-an-improvement` skill encapsulates the full lifecycle including a "great commit message" guide. For partial work, debugging detours, or ad-hoc fixes that aren't repo improvements, don't auto-push — Marty can run `/ship` when ready.
+4. **Push for successful improvements.** When the change is a real improvement to the project (new tool/skill/command, or material enhancement of one) and verification passed, push to origin. The `completing-an-improvement` skill encapsulates the full lifecycle including a "great commit message" guide. For partial work, debugging detours, or ad-hoc fixes that aren't repo improvements, don't auto-push — the user can run `/ship` when ready.
 
 If a task was purely conversational (no files changed), skip 1–4.
 

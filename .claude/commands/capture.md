@@ -14,7 +14,7 @@ Then act on the subcommand:
 - Windows: `Start-Process pwsh -PassThru -WindowStyle Hidden -ArgumentList '-NoProfile','-ExecutionPolicy','Bypass','-File','.\tools\windows\diagnostics\perf-capture.ps1','-IntervalSec','5'` — report `$proc.Id`.
 - Unix: `nohup ./tools/unix/diagnostics/perf-capture.sh -i 5 >/dev/null 2>&1 &` then `echo $!`.
 - If a pidfile already exists and its PID is alive, say a monitor is already running (show its PID + log) instead of starting a second one.
-- Tell Marty: use the machine normally; when it goes slow, note the time, then run `/capture analyze HH:mm`. Remind him it can be stopped with `/capture stop`.
+- Tell the user: use the machine normally; when it goes slow, note the time, then run `/capture analyze HH:mm`. Remind him it can be stopped with `/capture stop`.
 
 **status** — Read the pidfile. If present and the PID is alive, report: PID, how long it's been running, the log path, and current line count / last sample line. If absent or the PID is dead, say no monitor is running (and clean up a stale pidfile).
 

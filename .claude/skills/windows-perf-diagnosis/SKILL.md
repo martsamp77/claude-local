@@ -1,12 +1,12 @@
 ---
 name: windows-perf-diagnosis
-description: "[windows] Diagnose Windows performance issues — slow/unresponsive machine, high CPU or RAM. Use when Marty reports sluggishness or when interpreting perf-snapshot output."
+description: "[windows] Diagnose Windows performance issues — slow/unresponsive machine, high CPU or RAM. Use when the user reports sluggishness or when interpreting perf-snapshot output."
 ---
 
 # windows-perf-diagnosis
 
 Use this skill when:
-- Marty says the machine is slow, unresponsive, or laggy
+- the user says the machine is slow, unresponsive, or laggy
 - Interpreting output from `tools/windows/diagnostics/perf-snapshot.ps1`
 - Deciding which running processes to kill, cap, or disable
 
@@ -96,7 +96,7 @@ Stop-Process -Name "Docker Desktop" -Force -ErrorAction SilentlyContinue
 
 ## Asking for a live snapshot
 
-If Marty hasn't run a snapshot yet:
+If the user hasn't run a snapshot yet:
 
 ```
 I'll run a quick snapshot to see what's going on.

@@ -20,7 +20,7 @@ case "${ID_LIKE:-$ID}" in
 esac
 ```
 
-Most desktops Marty would install on are Debian/Ubuntu (`apt`), Fedora/RHEL (`dnf`), or Arch (`pacman`). The rest of this skill covers those three. SUSE/zypper exists but is rare for personal use; if it comes up, the patterns below port over directly.
+Most desktops the user would install on are Debian/Ubuntu (`apt`), Fedora/RHEL (`dnf`), or Arch (`pacman`). The rest of this skill covers those three. SUSE/zypper exists but is rare for personal use; if it comes up, the patterns below port over directly.
 
 ## Cheat sheet
 
@@ -80,7 +80,7 @@ Don't `curl | sh` AUR packages; use a helper that audits PKGBUILDs. Read PKGBUIL
 
 ## Safety
 
-- **System-wide installs require explicit confirmation.** `apt install`, `dnf install`, `pacman -S` modify the system. Per CLAUDE.md, get a clear yes from Marty before each install/remove on Linux.
+- **System-wide installs require explicit confirmation.** `apt install`, `dnf install`, `pacman -S` modify the system. Per CLAUDE.md, get a clear yes from the user before each install/remove on Linux.
 - **Don't `apt full-upgrade` or `pacman -Syu` casually on Arch** — major upgrades can require manual intervention. Read release notes first.
 - **`apt remove` keeps configs; `apt purge` removes them.** Choose deliberately. Default to `remove` unless reinstall would otherwise pick up old broken config.
 - **Never disable repository signature checks** (`--allow-unauthenticated`, `--nogpgcheck`, `SigLevel = Never`) without an explicit instruction.

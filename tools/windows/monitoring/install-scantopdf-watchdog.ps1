@@ -4,7 +4,7 @@
 .PLATFORM    windows
 .CATEGORY    monitoring
 .USAGE       .\tools\windows\monitoring\install-scantopdf-watchdog.ps1 [-DryRun] [-IntervalMinutes 3] [-BatchCap 150] [-SkipConfigCap] [-SkipTask] [-Uninstall]
-.WHEN        One-time setup (or removal) of the ScanToPDF auto-recovery on MD-FS01. Always preview with -DryRun first. Needs an elevated PowerShell.
+.WHEN        One-time setup (or removal) of the ScanToPDF auto-recovery. Always preview with -DryRun first. Needs an elevated PowerShell.
 #>
 # Companion installer for scantopdf-watchdog.ps1. See docs/windows/scantopdf-lockup-runbook.md.
 
@@ -21,7 +21,7 @@ param(
     # Also restore the previous config from the most recent backup during -Uninstall.
     [switch]$RestoreConfig,
     [string]$TaskName = 'ScanToPDF Watchdog',
-    [string]$TaskPath = '\Molecular\',
+    [string]$TaskPath = '\ScanToPDF\',
     [string]$ServiceName = 'ScanToPDFService',
     [string]$EventLogName   = 'ScanToPDF Alerting',
     [string]$EventLogSource = 'ScanToPDF Alerting Script',

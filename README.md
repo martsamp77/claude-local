@@ -1,8 +1,8 @@
 # claude-local
 
-Personal Claude Code workspace for administering Marty's machines — system settings, environment, software, services, scheduled jobs, dev tooling. One git checkout, synced across Windows, Linux, and macOS. Sysadmin-style asks; not an application.
+A Claude Code workspace for administering your machines — system settings, environment, software, services, scheduled jobs, dev tooling. One git checkout, synced across Windows, Linux, and macOS. Sysadmin-style asks; not an application.
 
-When Marty opens Claude Code in this directory on any machine, `CLAUDE.md` is auto-loaded. It detects the current OS from session context and tells Claude which skills, tools, and commands are eligible. Conversations pick up the conventions and tool knowledge without re-explaining each session.
+When you open Claude Code in this directory on any machine, `CLAUDE.md` is auto-loaded. It detects the current OS from session context and tells Claude which skills, tools, and commands are eligible. Conversations pick up the conventions and tool knowledge without re-explaining each session.
 
 ## OS support matrix
 
@@ -73,7 +73,7 @@ claude-local/
 │   │   │   ├── startup-inventory.ps1  # Read-only audit of every startup vector
 │   │   │   └── inspect-task.ps1       # Deep-dive on named scheduled task(s)
 │   │   └── monitoring/
-│   │       ├── scantopdf-watchdog.ps1          # Self-healing watchdog for ScanToPDF (MD-FS01)
+│   │       ├── scantopdf-watchdog.ps1          # Self-healing watchdog for ScanToPDF
 │   │       └── install-scantopdf-watchdog.ps1  # Installer: SYSTEM task + event-log source + batch cap
 │   ├── linux/                         # bash — .sh (perf-snapshot.sh)
 │   ├── macos/                         # bash — .sh (perf-snapshot.sh)
@@ -163,7 +163,7 @@ Scripts Claude can run directly. All paths are relative — no hardcoded machine
 | `tools/windows/diagnostics/perf-analyze.ps1` | Parse a perf-capture log into ranked culprits, slow-time windows, and an optional time-focused view | `-Path`, `-Around HH:mm`, `-WindowMin`, `-CpuPct` |
 | `tools/windows/startup/startup-inventory.ps1` | Read-only audit: Run keys (incl. WOW6432), startup folders, logon/boot tasks, auto-start services, with enable/disable state | `-IncludeMicrosoftTasks`, `-SaveLog` |
 | `tools/windows/startup/inspect-task.ps1` | Show full details of named scheduled task(s): action, principal, triggers | `-Name <task>[,<task>...]` |
-| `tools/windows/monitoring/scantopdf-watchdog.ps1` | Self-healing watchdog for ScanToPDF (MD-FS01): restarts the stopped service, kills the hung UI / orphaned OCR engines, quarantines oversized poison PDFs, alerts to Teams + event log | `-DryRun`, `-SaveLog`, `-QuarantineSizeMB`, `-NoAlert` |
+| `tools/windows/monitoring/scantopdf-watchdog.ps1` | Self-healing watchdog for ScanToPDF: restarts the stopped service, kills the hung UI / orphaned OCR engines, quarantines oversized poison PDFs, alerts to Teams + event log | `-DryRun`, `-SaveLog`, `-QuarantineSizeMB`, `-NoAlert` |
 | `tools/windows/monitoring/install-scantopdf-watchdog.ps1` | Installs the watchdog: registers the SYSTEM scheduled task, ensures the event-log source, provisions the Teams webhook, caps `maxBatchCount`. Run elevated | `-DryRun`, `-IntervalMinutes`, `-BatchCap`, `-WebhookUrl`, `-Uninstall` |
 
 ### Linux (`tools/linux/`)

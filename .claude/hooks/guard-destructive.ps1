@@ -4,7 +4,7 @@
   Warns (does NOT block, does NOT auto-approve) when a proposed shell command
   matches a destructive-system-change pattern from this repo's CLAUDE.md safety
   rules. Emits `additionalContext` so the model is reminded of the rule and the
-  required precaution; the normal permission prompt still happens, so Marty stays
+  required precaution; the normal permission prompt still happens, so the user stays
   in control.
 
   Cross-platform: written in pwsh (runs on Windows, Linux, macOS). It selects the
@@ -28,7 +28,7 @@ try {
 # pattern -> reminder. Patterns are case-insensitive regex against the command text.
 if ($IsWindows -ne $false) {   # Windows (also true when $IsWindows is $null on Win PowerShell 5.1)
     $rules = @(
-        @{ rx = 'HKLM|HKEY_LOCAL_MACHINE';                         msg = 'HKLM (machine-wide) registry change — needs an explicit "yes go ahead" from Marty, and a `reg export` backup to backups\windows\registry\ FIRST.' }
+        @{ rx = 'HKLM|HKEY_LOCAL_MACHINE';                         msg = 'HKLM (machine-wide) registry change — needs an explicit "yes go ahead" from the user, and a `reg export` backup to backups\windows\registry\ FIRST.' }
         @{ rx = '\breg\s+delete\b';                                msg = 'reg delete — back up the key with `reg export` to backups\windows\registry\ before deleting; note the inverse.' }
         @{ rx = '(Set-ItemProperty|New-ItemProperty|Remove-Item|New-Item).*HK';  msg = 'Registry write — back it up first (windows-registry skill); HKCU is reversible, HKLM needs explicit confirmation.' }
         @{ rx = 'Set-MpPreference|DisableRealtimeMonitoring|Add-MpPreference.*Exclusion'; msg = 'Microsoft Defender change — NEVER disable Defender without an explicit instruction naming it.' }
@@ -40,7 +40,7 @@ if ($IsWindows -ne $false) {   # Windows (also true when $IsWindows is $null on 
         @{ rx = 'winget\s+uninstall|Uninstall-Package|Uninstall-WindowsFeature'; msg = 'Uninstall — confirm before removing software (winget-packages skill).' }
         @{ rx = 'Remove-Item.*-Recurse.*-Force';                   msg = 'Recursive force delete — double-check the target path is what you think it is.' }
         @{ rx = '\bbcdedit\b|\bdiskpart\b|\bformat\b\s';           msg = 'Boot/disk/format operation — high blast radius; confirm explicitly.' }
-        @{ rx = 'Start-Process.*-Verb\s+RunAs';                    msg = 'Auto-elevation — repo rule is DO NOT auto-elevate; print the command and let Marty run it in an elevated shell.' }
+        @{ rx = 'Start-Process.*-Verb\s+RunAs';                    msg = 'Auto-elevation — repo rule is DO NOT auto-elevate; print the command and let the user run it in an elevated shell.' }
     )
 } else {   # Linux / macOS
     $rules = @(
@@ -55,7 +55,7 @@ if ($IsWindows -ne $false) {   # Windows (also true when $IsWindows is $null on 
         @{ rx = 'defaults\s+delete';                                        msg = 'defaults delete — snapshot the current value to backups/macos/defaults/<ts>/ first (macos-defaults skill).' }
         @{ rx = 'launchctl\s+(bootout|unload|disable).*(/Library|/System)'; msg = 'System-wide launchd change — /Library and /System daemons need explicit confirmation (macos-launchd skill).' }
         @{ rx = '\bdd\b.*of=/dev/|mkfs|fdisk|parted';                       msg = 'Disk/partition operation — high blast radius; confirm the device path.' }
-        @{ rx = '\bsudo\b';                                                 msg = 'sudo — repo rule is DO NOT auto-elevate; print the command for Marty to run rather than piping to sudo silently.' }
+        @{ rx = '\bsudo\b';                                                 msg = 'sudo — repo rule is DO NOT auto-elevate; print the command for the user to run rather than piping to sudo silently.' }
     )
 }
 

@@ -91,7 +91,7 @@ For env vars (not PATH), `/etc/zshenv` is the system-wide place — but it's rea
 export MYCORP_API_URL=https://api.mycorp.example
 ```
 
-Per CLAUDE.md, **back up `/etc/paths`, `/etc/paths.d/<name>`, or `/etc/zshenv` to `backups/macos/defaults/<ts>/` before edits**, and confirm system-wide writes with Marty.
+Per CLAUDE.md, **back up `/etc/paths`, `/etc/paths.d/<name>`, or `/etc/zshenv` to `backups/macos/defaults/<ts>/` before edits**, and confirm system-wide writes with the user.
 
 ## PATH editing pattern (zsh)
 

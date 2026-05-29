@@ -9,7 +9,7 @@ A one-shot `/perf` snapshot only sees *this instant*. When slowness **comes and 
 
 ## When to use
 
-- Marty says the machine is *sometimes* slow / laggy / stutters, but it's fine right now.
+- the user says the machine is *sometimes* slow / laggy / stutters, but it's fine right now.
 - `/perf` (perf-snapshot) shows a healthy, idle machine, yet the complaint persists.
 - You need to correlate a felt slow moment ("it was bad around 2:35") with what was actually running.
 

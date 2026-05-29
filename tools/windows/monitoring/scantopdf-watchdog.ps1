@@ -4,10 +4,10 @@
 .PLATFORM    windows
 .CATEGORY    monitoring
 .USAGE       .\tools\windows\monitoring\scantopdf-watchdog.ps1 [-DryRun] [-SaveLog] [-QuarantineSizeMB 20] [-HotFolder <path>] [-NoAlert]
-.WHEN        "ScanToPDF keeps locking up", "the scanner service hangs at night", scheduled every few minutes as SYSTEM to auto-recover ScanToPDF on MD-FS01. Run with -DryRun first to see what it would do.
+.WHEN        "ScanToPDF keeps locking up", "the scanner service hangs at night", scheduled every few minutes as SYSTEM to auto-recover ScanToPDF. Run with -DryRun first to see what it would do.
 #>
 # ---------------------------------------------------------------------------
-# Background: ScanToPDF (MD-FS01) hangs when a large end-of-day batch (250-500
+# Background: ScanToPDF hangs when a large end-of-day batch (250-500
 # page / 25-35 MB PDF) drives the aged Transym OCR engine (TOCRRService.exe) to
 # access-violate. The 32-bit UI then stops responding (Event ID 1002) and the
 # unconsumed source PDF gets retried on every restart -> repeat lockups.
@@ -26,8 +26,8 @@ param(
     [string]$ServiceName = 'ScanToPDFService',
     # Interactive UI process names (no .exe) to watch for hangs.
     [string[]]$UiProcessNames = @('ScanToPDF', 'ScanToPDFB10'),
-    # AutoFileImport hot folder watched by the ScanToPDF service.
-    [string]$HotFolder = 'E:\Assurance Labs\Assurance Scientific\ASL- To be billed\ScanToPDF\Scan to PDF',
+    # AutoFileImport hot folder watched by the ScanToPDF service. Set -HotFolder to your site's path.
+    [string]$HotFolder = 'E:\ScanToPDF\Hot Folder',
     # Where poison files get moved. Defaults to a sibling of the hot folder.
     [string]$QuarantineFolder,
     # A hot-folder PDF at/above this size is a candidate for the poison-file guard.

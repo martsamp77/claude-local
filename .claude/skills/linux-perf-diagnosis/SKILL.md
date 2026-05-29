@@ -1,12 +1,12 @@
 ---
 name: linux-perf-diagnosis
-description: "[linux] Diagnose Linux performance issues — slow/unresponsive machine, high CPU, RAM, or load average. Use when Marty reports sluggishness on a Linux box or when interpreting perf-snapshot.sh output."
+description: "[linux] Diagnose Linux performance issues — slow/unresponsive machine, high CPU, RAM, or load average. Use when the user reports sluggishness on a Linux box or when interpreting perf-snapshot.sh output."
 ---
 
 # linux-perf-diagnosis
 
 Use this skill when:
-- Marty says the Linux machine is slow, laggy, or hung
+- the user says the Linux machine is slow, laggy, or hung
 - Interpreting output from `tools/linux/diagnostics/perf-snapshot.sh`
 - Triaging which process or subsystem is the cause before recommending action
 

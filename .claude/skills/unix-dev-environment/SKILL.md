@@ -30,11 +30,11 @@ brew install gh                       # macOS
 sudo apt install gh                   # Ubuntu (after adding the official repo) — or `brew install gh` on Linuxbrew
 ```
 
-Common config — confirm name/email with Marty before setting:
+Common config — confirm name/email with the user before setting:
 
 ```bash
-git config --global user.name  "Marty Sampson"
-git config --global user.email "martysampson@gmail.com"
+git config --global user.name  "Your Name"
+git config --global user.email "you@example.com"
 git config --global init.defaultBranch main
 git config --global core.autocrlf input        # Linux/macOS: keep LF on disk, accept LF or CRLF on commit
 git config --global pull.rebase false
@@ -70,7 +70,7 @@ git config --global --edit                   # opens in $EDITOR
 Default location is `~/.ssh/`. Generate an ed25519 key (modern default):
 
 ```bash
-ssh-keygen -t ed25519 -C "marty@<machine>" -f ~/.ssh/id_ed25519
+ssh-keygen -t ed25519 -C "you@<machine>" -f ~/.ssh/id_ed25519
 chmod 700 ~/.ssh
 chmod 600 ~/.ssh/id_ed25519
 chmod 644 ~/.ssh/id_ed25519.pub
@@ -279,7 +279,7 @@ echo 'eval "$(mise activate zsh)"' >> ~/.zshrc
 mise use --global node@lts python@3.12 go@latest
 
 # Generate SSH key, add to GitHub
-ssh-keygen -t ed25519 -C "marty@$(hostname)" -f ~/.ssh/id_ed25519
+ssh-keygen -t ed25519 -C "you@$(hostname)" -f ~/.ssh/id_ed25519
 gh auth login
 gh ssh-key add ~/.ssh/id_ed25519.pub --title "$(hostname)"
 ```

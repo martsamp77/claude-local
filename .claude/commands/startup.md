@@ -7,7 +7,7 @@ Steps:
 4. Group findings into the three triage tiers from the skill:
    - **Disable freely** — known runaway hogs / inactive apps (Logi Options+, Razer if unused, Adobe stack, telemetry services).
    - **Investigate** — `NO-RECORD` entries in WOW6432Node, unknown scheduled tasks, hardware-vendor items that look ambiguous.
-   - **Don't touch** — work-mandated EDR/RMM (Datto, Blackpoint, AutoElevate, Splashtop), load-bearing drivers, things Marty actively uses.
+   - **Don't touch** — work-mandated EDR/RMM (Datto, Blackpoint, AutoElevate, Splashtop), load-bearing drivers, things the user actively uses.
 5. For each item in the "disable freely" tier, give the exact PowerShell command. Mark commands that need an elevated shell.
 6. End with a one-line summary (e.g. "X items safe to disable, Y need investigation, Z work-mandated").
 

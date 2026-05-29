@@ -77,7 +77,7 @@ For shell-only system-wide vars, drop a file under `/etc/profile.d/`:
 export MYCORP_API_URL=https://api.mycorp.example
 ```
 
-Per CLAUDE.md, **back up `/etc/environment` or the existing profile.d file to `backups/linux/etc/<ts>/` before editing**, and confirm system-wide changes with Marty before each write.
+Per CLAUDE.md, **back up `/etc/environment` or the existing profile.d file to `backups/linux/etc/<ts>/` before editing**, and confirm system-wide changes with the user before each write.
 
 ## PATH editing
 
