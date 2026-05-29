@@ -142,6 +142,8 @@ Scripts Claude can run directly. All paths are relative — no hardcoded machine
 | `tools/windows/diagnostics/perf-watch.ps1` | Continuous monitor; highlights processes crossing CPU % or RAM MB thresholds | `-IntervalSec`, `-CpuThreshold`, `-RamThresholdMb` |
 | `tools/windows/startup/startup-inventory.ps1` | Read-only audit: Run keys (incl. WOW6432), startup folders, logon/boot tasks, auto-start services, with enable/disable state | `-IncludeMicrosoftTasks`, `-SaveLog` |
 | `tools/windows/startup/inspect-task.ps1` | Show full details of named scheduled task(s): action, principal, triggers | `-Name <task>[,<task>...]` |
+| `tools/windows/monitoring/scantopdf-watchdog.ps1` | Self-heals ScanToPDF: restarts stopped service, kills hung UI / orphaned OCR engines, quarantines oversized poison PDFs; alerts to Teams + event log. See [runbook](docs/windows/scantopdf-lockup-runbook.md) | `-DryRun`, `-SaveLog`, `-QuarantineSizeMB`, `-NoAlert` |
+| `tools/windows/monitoring/install-scantopdf-watchdog.ps1` | Installs/removes the watchdog: registers the SYSTEM scheduled task, ensures the alerting event-log source, caps `maxBatchCount`. Run elevated | `-DryRun`, `-BatchCap`, `-SkipConfigCap`, `-Uninstall` |
 
 ### Linux (`tools/linux/`)
 
