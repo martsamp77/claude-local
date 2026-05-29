@@ -8,21 +8,23 @@ When Marty opens Claude Code in this directory on any machine, `CLAUDE.md` is au
 
 | OS | Status | Skills available | Tools available |
 |---|---|---|---|
-| Windows 11 | ✅ Full | 10 (`windows-*`, `winget-packages`, `nilesoft-shell`) | 4 (perf, startup) |
-| Linux | ✅ Baseline | 4 (`linux-perf-diagnosis`, `linux-systemd`, `linux-packages`, `linux-env-vars`) | 1 (`perf-snapshot.sh`) |
-| macOS | ✅ Baseline | 5 (`macos-perf-diagnosis`, `macos-launchd`, `macos-homebrew`, `macos-defaults`, `macos-env-vars`) | 1 (`perf-snapshot.sh`) |
+| Windows 11 | ✅ Full | 11 (`windows-*`, `winget-packages`, `nilesoft-shell`) | 6 (perf ×4, startup ×2) |
+| Linux | ✅ Baseline | 4 (`linux-perf-diagnosis`, `linux-systemd`, `linux-packages`, `linux-env-vars`) | 1 native + 2 shared (`tools/unix`) |
+| macOS | ✅ Baseline | 5 (`macos-perf-diagnosis`, `macos-launchd`, `macos-homebrew`, `macos-defaults`, `macos-env-vars`) | 1 native + 2 shared (`tools/unix`) |
 | WSL | ↪ Treated as Linux | inherits Linux scope; flags `/mnt/c/...` writes | inherits Linux |
-| All OSes | ✅ | `completing-an-improvement` | `/ship` command |
+| All OSes | ✅ | `completing-an-improvement`, `perf-capture` | `/ship` + `/capture` commands · 2 hooks · `perf-analyst` agent |
 
 Each skill description starts with a `[scope]` tag — `[windows]`, `[linux]`, `[macos]`, `[unix]` (Linux+macOS), or `[all]`. Claude filters by current OS automatically; see the **Detect your platform first** section in `CLAUDE.md`.
 
 ## What this is
 
-Three layers:
+Five layers:
 
 - **Skills** (`.claude/skills/`) — instruction files that tell Claude how to approach a task domain. Scope-tagged so Claude only uses ones that match the current OS.
 - **Tools** (`tools/<os>/`) — executable scripts Claude can run directly (PowerShell on Windows, bash on Linux/macOS). Self-describing via header comments; Claude discovers them automatically via the Tool inventory section of `CLAUDE.md`.
-- **Commands** (`.claude/commands/`) — slash commands that trigger multi-step workflows (e.g. `/perf`).
+- **Commands** (`.claude/commands/`) — slash commands that trigger multi-step workflows (e.g. `/perf`, `/capture`).
+- **Hooks** (`.claude/hooks/`) — `pwsh` scripts Claude Code runs automatically on events: a `PreToolUse` safety guard (warns on destructive system commands) and a `SessionStart` orientation. Registered in `.claude/settings.json`.
+- **Agents** (`.claude/agents/`) — subagents Claude can delegate to (e.g. `perf-analyst` for chewing through capture logs off the main context).
 
 What it intentionally does **not** contain:
 
@@ -37,9 +39,11 @@ claude-local/
 ├── README.md                          # You are here
 ├── .gitignore                         # Excludes backups/ and logs/
 ├── .claude/
-│   ├── settings.local.json            # Per-project Claude Code permissions
-│   ├── commands/                      # Slash commands
-│   │   └── perf.md                    # /perf — snapshot + interpret
+│   ├── settings.json                  # Committed: hooks (guard + session-start), cross-OS via pwsh
+│   ├── settings.local.json            # Per-machine permissions (optional)
+│   ├── commands/                      # Slash commands (/perf, /startup, /ship, /capture)
+│   ├── hooks/                         # PreToolUse safety guard + SessionStart orientation (pwsh)
+│   ├── agents/                        # Subagents (perf-analyst)
 │   └── skills/                        # Domain skills, auto-discovered by name
 │       ├── windows-registry/                # [windows]
 │       ├── windows-env-vars/                # [windows]
@@ -52,18 +56,25 @@ claude-local/
 │       ├── nilesoft-shell/                  # [windows]
 │       ├── windows-perf-diagnosis/          # [windows]
 │       ├── windows-startup-management/      # [windows]
-│       └── completing-an-improvement/       # [all]
+│       ├── windows-hello-diagnosis/         # [windows]
+│       ├── perf-capture/                     # [all]
+│       └── completing-an-improvement/        # [all]
 ├── tools/                             # Executable scripts, organized by OS
 │   ├── windows/                       # PowerShell — .ps1
 │   │   ├── diagnostics/
 │   │   │   ├── perf-snapshot.ps1      # One-shot system snapshot
-│   │   │   └── perf-watch.ps1         # Continuous threshold monitor
+│   │   │   ├── perf-watch.ps1         # Continuous threshold monitor (interactive)
+│   │   │   ├── perf-capture.ps1       # Unattended background monitor -> log (intermittent)
+│   │   │   └── perf-analyze.ps1       # Parse a capture log -> culprits + slow windows
 │   │   └── startup/
 │   │       ├── startup-inventory.ps1  # Read-only audit of every startup vector
 │   │       └── inspect-task.ps1       # Deep-dive on named scheduled task(s)
-│   ├── linux/                         # bash — .sh (Phase 3)
-│   ├── macos/                         # bash — .sh (Phase 4)
+│   ├── linux/                         # bash — .sh (perf-snapshot.sh)
+│   ├── macos/                         # bash — .sh (perf-snapshot.sh)
 │   └── unix/                          # portable bash for Linux + macOS
+│       └── diagnostics/
+│           ├── perf-capture.sh        # Unattended background monitor -> log
+│           └── perf-analyze.sh        # Parse a capture log -> culprits + slow windows
 ├── staging/                           # Edits ready to copy into protected dirs (elevated)
 │   ├── windows/
 │   │   ├── nilesoft/
@@ -98,6 +109,7 @@ claude-local/
 | [`nilesoft-shell`](.claude/skills/nilesoft-shell/SKILL.md) | `.nss` syntax; CLI flags; runtime modifier shortcuts; reload mechanics |
 | [`windows-perf-diagnosis`](.claude/skills/windows-perf-diagnosis/SKILL.md) | Diagnose slow/unresponsive machine; interpret snapshot output; known hogs and fixes |
 | [`windows-startup-management`](.claude/skills/windows-startup-management/SKILL.md) | Audit startup items across Run keys / folders / scheduled tasks / services; triage tiers; disable patterns |
+| [`windows-hello-diagnosis`](.claude/skills/windows-hello-diagnosis/SKILL.md) | Diagnose and fix Windows Hello PIN/fingerprint failures — services, NGC corruption, Azure AD device registration (`dsregcmd /forcerecovery`), Intune WHfB policy, TPM lockout |
 
 ### Linux (`[linux]`)
 
@@ -128,6 +140,7 @@ claude-local/
 
 | Skill | What it covers |
 |---|---|
+| [`perf-capture`](.claude/skills/perf-capture/SKILL.md) | Catch intermittent ("comes and goes") slowdowns a one-shot snapshot misses: start an unattended background monitor, then analyze the log by timestamp; the spike-vs-calm fork |
 | [`completing-an-improvement`](.claude/skills/completing-an-improvement/SKILL.md) | End-to-end ship cycle for a verified repo improvement: smoke-test, doc updates, commit (with great-message guide), push |
 
 ## Tools
@@ -139,7 +152,9 @@ Scripts Claude can run directly. All paths are relative — no hardcoded machine
 | Script | What it does | Key params |
 |---|---|---|
 | `tools/windows/diagnostics/perf-snapshot.ps1` | One-shot snapshot: CPU, RAM, disk, pagefile, power plan, top processes, known-hog check | `-Top <n>`, `-SaveLog` |
-| `tools/windows/diagnostics/perf-watch.ps1` | Continuous monitor; highlights processes crossing CPU % or RAM MB thresholds | `-IntervalSec`, `-CpuThreshold`, `-RamThresholdMb` |
+| `tools/windows/diagnostics/perf-watch.ps1` | Continuous monitor; highlights processes crossing CPU % or RAM MB thresholds (interactive, console) | `-IntervalSec`, `-CpuThreshold`, `-RamThresholdMb` |
+| `tools/windows/diagnostics/perf-capture.ps1` | Unattended background monitor; appends timestamped CPU/disk/RAM samples + spike flag to a log (for intermittent slowdowns); writes a PID file | `-IntervalSec`, `-CpuPct`, `-DiskQ`, `-DurationMin` |
+| `tools/windows/diagnostics/perf-analyze.ps1` | Parse a perf-capture log into ranked culprits, slow-time windows, and an optional time-focused view | `-Path`, `-Around HH:mm`, `-WindowMin`, `-CpuPct` |
 | `tools/windows/startup/startup-inventory.ps1` | Read-only audit: Run keys (incl. WOW6432), startup folders, logon/boot tasks, auto-start services, with enable/disable state | `-IncludeMicrosoftTasks`, `-SaveLog` |
 | `tools/windows/startup/inspect-task.ps1` | Show full details of named scheduled task(s): action, principal, triggers | `-Name <task>[,<task>...]` |
 
@@ -155,13 +170,40 @@ Scripts Claude can run directly. All paths are relative — no hardcoded machine
 |---|---|---|
 | `tools/macos/diagnostics/perf-snapshot.sh` | One-shot snapshot: macOS version, model + chip (Apple Silicon perf/efficiency cores), memory (`vm_stat`), swap, disks, power/battery, top by CPU+RAM, Mac-specific known-hog check (kernel_task, WindowServer, mds_stores, etc.) | `-t TOP` (default 15), `-l` (save log) |
 
+### Linux + macOS (`tools/unix/`)
+
+Portable bash, used by both Linux and macOS (the `/capture` command dispatches here for `linux` and `darwin`). OS-specific bits branch internally on `uname`.
+
+| Script | What it does | Key params |
+|---|---|---|
+| `tools/unix/diagnostics/perf-capture.sh` | Unattended background monitor; appends timestamped CPU/load/mem samples + spike flag to a log (intermittent slowdowns); writes a PID file | `-i INTERVAL`, `-c CPU_PCT`, `-d DURATION_MIN`, `-t TOP` |
+| `tools/unix/diagnostics/perf-analyze.sh` | Parse a perf-capture log into ranked culprits, slow-time windows, and an optional time-focused view | `-p LOG`, `-a HH:MM`, `-w WINDOW_MIN`, `-c CPU_PCT` |
+
 ## Commands
 
 | Command | OS scope | What it does |
 |---|---|---|
 | `/perf` | All (Windows + Linux + macOS) | Run perf-snapshot, interpret output, return top issues + recommended actions; dispatches by `Platform:` |
+| `/capture` | All (Windows + Linux + macOS) | `start`/`stop`/`status`/`analyze [HH:mm]` a background perf-capture for intermittent ("comes and goes") slowdowns; dispatches by `Platform:` |
 | `/startup` | Windows only | Run startup-inventory, classify items into disable / investigate / leave-alone tiers, stage commands |
 | `/ship` | All | Commit any uncommitted work (with doc check) and push to the remote |
+
+## Hooks
+
+Project-scoped hooks in `.claude/hooks/`, registered in [`.claude/settings.json`](.claude/settings.json). Written in `pwsh` so one committed config works on all three OSes (Linux/macOS need PowerShell installed — see [`.claude/hooks/README.md`](.claude/hooks/README.md)). Both are read-only and always exit 0; they observe and remind, never block.
+
+| Hook | Event | What it does |
+|---|---|---|
+| `guard-destructive.ps1` | `PreToolUse` (`Bash`/`PowerShell`) | **Warns** (never blocks, never auto-approves) when a command matches a destructive-system-change rule — HKLM/registry deletes, disabling Defender/UAC/SmartScreen/Windows Update, stopping services; `rm -rf` on system paths, `/etc` edits, `systemctl disable/mask`, firewall/SELinux, SIP/Gatekeeper/FileVault, `sudo`, disk/format ops. The normal permission prompt still applies. |
+| `session-start.ps1` | `SessionStart` | Injects an OS-filtered tool inventory (name + synopsis) and reports whether a `perf-capture` monitor is already running. Automates the "list tools at session start" step from `CLAUDE.md`. |
+
+## Agents
+
+Subagents in `.claude/agents/`. Invoke by naming them, or Claude delegates automatically.
+
+| Agent | What it does |
+|---|---|
+| [`perf-analyst`](.claude/agents/perf-analyst.md) | Read-only. Analyzes a `perf-capture` log (runs `perf-analyze`, correlates a reported slow time) and returns a ranked culprit list + a clear spike-vs-calm verdict — keeps large logs out of the main context. |
 
 ## How a session typically works
 
@@ -189,7 +231,11 @@ OS-specific safety rules live in `CLAUDE.md` under **Per-OS conventions** — th
 
 **New tool:** `tools/<os>/<category>/<name>.ps1` (or `.sh` for Linux/macOS) with the standard header block (`.NAME`, `.SYNOPSIS`, `.PLATFORM`, `.CATEGORY`, `.USAGE`, `.WHEN`). Add a row to the tools table above. Claude discovers it automatically next session via `CLAUDE.md`.
 
-**New command:** `.claude/commands/<name>.md` describing the workflow. Add a row to the commands table above.
+**New command:** `.claude/commands/<name>.md` describing the workflow (first line = its description). Add a row to the commands table above.
+
+**New hook:** add a `pwsh` script to `.claude/hooks/` and register it in `.claude/settings.json` under the right event (`PreToolUse`, `SessionStart`, …). Keep it read-only and non-blocking unless intentionally gating. Document it in `.claude/hooks/README.md` and add a row to the Hooks table above.
+
+**New agent:** `.claude/agents/<name>.md` with `name` + `description` frontmatter (optionally `tools`, `model`, `color`). Add a row to the Agents table above.
 
 ## Reference
 
