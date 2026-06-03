@@ -3,8 +3,9 @@
 .SYNOPSIS    Parse a perf-capture log into a ranked culprit list, slow-time windows, and an optional time-focused view.
 .PLATFORM    windows
 .CATEGORY    diagnostics
-.USAGE       .\tools\windows\diagnostics\perf-analyze.ps1 [-Path <log>] [-Around HH:mm] [-WindowMin 3] [-CpuPct 60] [-DiskQ 2] [-Top 8]
+.USAGE       .\tools\windows\diagnostics\perf-analyze.ps1 [-Path <log>] [-Around HH:mm] [-WindowMin 3] [-CpuPct 60] [-DiskQ 2] [-Top 8] [-ExcludeDev] [-Exclude <names>] [-OnlyDev]
 .WHEN        After perf-capture has been running; you want to know what spiked, and when. Pass -Around to focus on a moment you felt the slowness.
+             Use -ExcludeDev to re-slice an existing capture with dev tools (node/Docker/PowerToys/Tailscale) hidden — no re-capture needed.
 #>
 param(
     [string]$Path,             # default: most recent *-perf-capture.log under logs\windows\diagnostics
@@ -12,12 +13,26 @@ param(
     [int]$WindowMin = 3,       # +/- minutes around -Around
     [double]$CpuPct = 60,      # a sample is "hot" when total CPU% >= this
     [double]$DiskQ  = 2,       # ...or when avg disk queue length >= this
-    [int]$Top       = 8
+    [int]$Top       = 8,
+    [switch]$ExcludeDev,       # hide the dev allowlist (node/Docker+WSL/PowerToys/Tailscale) from the rankings
+    [string[]]$Exclude = @(),  # extra process-name patterns to hide; -like, case-insensitive
+    [switch]$OnlyDev           # inverse: rank ONLY the dev allowlist
 )
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = Resolve-Path (Join-Path $PSScriptRoot '..\..\..')
 $logDir   = Join-Path $repoRoot 'logs\windows\diagnostics'
+
+# Dev allowlist (dot-sourced). Filtering is applied inside Rank-Culprits, against parsed log names.
+. "$PSScriptRoot\dev-allowlist.ps1"
+$suppress = @()
+if ($ExcludeDev) { $suppress += $DevAllowlist }
+$suppress += $Exclude
+function Test-Keep([string]$name) {
+    if ($OnlyDev) { return (Test-DevProcess -Name $name -ExtraPatterns $Exclude) }
+    foreach ($pat in $suppress) { if ($name -like $pat) { return $false } }
+    return $true
+}
 
 if (-not $Path) {
     $latest = Get-ChildItem (Join-Path $logDir '*-perf-capture.log') -ErrorAction SilentlyContinue |
@@ -70,6 +85,7 @@ function Rank-Culprits($set, [int]$top) {
     $agg = @{}
     foreach ($s in $set) {
         foreach ($p in (Parse-Procs $s.Procs)) {
+            if (-not (Test-Keep $p.Name)) { continue }
             if (-not $agg.ContainsKey($p.Name)) { $agg[$p.Name] = [pscustomobject]@{ Name=$p.Name; Peak=0; Sum=0; Count=0; MaxRam=0 } }
             $a = $agg[$p.Name]
             if ($p.Pct -gt $a.Peak) { $a.Peak = $p.Pct }
@@ -120,10 +136,22 @@ if (-not $hot) {
     }
 }
 
-Write-Host "`n=== TOP CPU CONSUMERS (whole capture, by peak core%) ===" -ForegroundColor Cyan
+$consumerTitle = if ($OnlyDev) { 'TOP DEV-TOOL CPU CONSUMERS (whole capture, by peak core%)' } elseif ($suppress.Count) { 'TOP CPU CONSUMERS (whole capture, by peak core% — DEV TOOLS EXCLUDED)' } else { 'TOP CPU CONSUMERS (whole capture, by peak core%)' }
+Write-Host "`n=== $consumerTitle ===" -ForegroundColor Cyan
 Rank-Culprits $samples $Top | ForEach-Object {
     $avg = if ($_.Count) { [math]::Round($_.Sum / $_.Count, 0) } else { 0 }
     Write-Host ("  {0,-26} peak={1,4}%  avg={2,4}%  seen={3,4}x  maxRAM={4} MB" -f $_.Name, $_.Peak, $avg, $_.Count, $_.MaxRam)
+}
+if ($OnlyDev) {
+    Write-Host '  (showing dev tools only — -OnlyDev)' -ForegroundColor DarkGray
+} elseif ($suppress.Count) {
+    # Name the dev categories hidden from the ranking, so nothing vanishes silently.
+    $hidden = Get-DevCategoryBreakdown -Names (& {
+        $names = @()
+        foreach ($s in $samples) { foreach ($p in (Parse-Procs $s.Procs)) { if (-not (Test-Keep $p.Name)) { $names += $p.Name } } }
+        $names | Select-Object -Unique
+    }) -ExtraPatterns $Exclude
+    if ($hidden) { Write-Host "  (suppressed from ranking: $hidden — re-run without -ExcludeDev to see them)" -ForegroundColor DarkGray }
 }
 
 if ($Around) {

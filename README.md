@@ -68,7 +68,8 @@ claude-local/
 │   │   │   ├── perf-snapshot.ps1      # One-shot system snapshot
 │   │   │   ├── perf-watch.ps1         # Continuous threshold monitor (interactive)
 │   │   │   ├── perf-capture.ps1       # Unattended background monitor -> log (intermittent)
-│   │   │   └── perf-analyze.ps1       # Parse a capture log -> culprits + slow windows
+│   │   │   ├── perf-analyze.ps1       # Parse a capture log -> culprits + slow windows
+│   │   │   └── dev-allowlist.ps1      # Shared dev-tool allowlist (dot-sourced by perf-* for -ExcludeDev)
 │   │   ├── startup/
 │   │   │   ├── startup-inventory.ps1  # Read-only audit of every startup vector
 │   │   │   └── inspect-task.ps1       # Deep-dive on named scheduled task(s)
@@ -157,10 +158,11 @@ Scripts Claude can run directly. All paths are relative — no hardcoded machine
 
 | Script | What it does | Key params |
 |---|---|---|
-| `tools/windows/diagnostics/perf-snapshot.ps1` | One-shot snapshot: CPU, RAM, disk, pagefile, power plan, top processes, known-hog check | `-Top <n>`, `-SaveLog` |
-| `tools/windows/diagnostics/perf-watch.ps1` | Continuous monitor; highlights processes crossing CPU % or RAM MB thresholds (interactive, console) | `-IntervalSec`, `-CpuThreshold`, `-RamThresholdMb` |
+| `tools/windows/diagnostics/perf-snapshot.ps1` | One-shot snapshot: CPU, RAM, disk, pagefile, power plan, top processes, known-hog check | `-Top <n>`, `-SaveLog`, `-ExcludeDev`, `-Exclude <names>`, `-OnlyDev` |
+| `tools/windows/diagnostics/perf-watch.ps1` | Continuous monitor; highlights processes crossing CPU % or RAM MB thresholds (interactive, console) | `-IntervalSec`, `-CpuThreshold`, `-RamThresholdMb`, `-ExcludeDev`, `-Exclude <names>`, `-OnlyDev` |
 | `tools/windows/diagnostics/perf-capture.ps1` | Unattended background monitor; appends timestamped CPU/disk/RAM samples + spike flag to a log (for intermittent slowdowns); writes a PID file | `-IntervalSec`, `-CpuPct`, `-DiskQ`, `-DurationMin` |
-| `tools/windows/diagnostics/perf-analyze.ps1` | Parse a perf-capture log into ranked culprits, slow-time windows, and an optional time-focused view | `-Path`, `-Around HH:mm`, `-WindowMin`, `-CpuPct` |
+| `tools/windows/diagnostics/perf-analyze.ps1` | Parse a perf-capture log into ranked culprits, slow-time windows, and an optional time-focused view | `-Path`, `-Around HH:mm`, `-WindowMin`, `-CpuPct`, `-ExcludeDev`, `-Exclude <names>`, `-OnlyDev` |
+| `tools/windows/diagnostics/dev-allowlist.ps1` | Shared dev-tool allowlist + matcher (`node`/Docker+WSL/PowerToys/Tailscale); dot-sourced by the perf-* tools to power `-ExcludeDev`. Not run directly | _(library — dot-sourced)_ |
 | `tools/windows/startup/startup-inventory.ps1` | Read-only audit: Run keys (incl. WOW6432), startup folders, logon/boot tasks, auto-start services, with enable/disable state | `-IncludeMicrosoftTasks`, `-SaveLog` |
 | `tools/windows/startup/inspect-task.ps1` | Show full details of named scheduled task(s): action, principal, triggers | `-Name <task>[,<task>...]` |
 | `tools/windows/monitoring/scantopdf-watchdog.ps1` | Self-healing watchdog for ScanToPDF: restarts the stopped service, kills the hung UI / orphaned OCR engines, quarantines oversized poison PDFs, alerts to Teams + event log | `-DryRun`, `-SaveLog`, `-QuarantineSizeMB`, `-NoAlert` |

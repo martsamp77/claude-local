@@ -16,13 +16,30 @@ Run from the repo root (relative paths, no elevation needed):
 
 ```powershell
 # One-shot snapshot — use this first
-.\tools\windows\diagnostics\perf-snapshot.ps1 [-Top 15] [-SaveLog]
+.\tools\windows\diagnostics\perf-snapshot.ps1 [-Top 15] [-SaveLog] [-ExcludeDev] [-Exclude <names>] [-OnlyDev]
 
-# Continuous monitor — use to catch intermittent spikes
-.\tools\windows\diagnostics\perf-watch.ps1 [-IntervalSec 5] [-CpuThreshold 25] [-RamThresholdMb 800]
+# Continuous monitor — use to catch intermittent spikes (live "what's busy NOW")
+.\tools\windows\diagnostics\perf-watch.ps1 [-IntervalSec 5] [-CpuThreshold 25] [-RamThresholdMb 800] [-ExcludeDev]
 ```
 
 Saved logs land in `logs/windows/diagnostics/` (gitignored).
+
+## Excluding dev tools (`-ExcludeDev`)
+
+When the box is busy with legitimate development work and you want to know what *else* is loading it, add `-ExcludeDev` (supported on `perf-snapshot`, `perf-watch`, and `perf-analyze`). It hides a shared allowlist defined in `tools/windows/diagnostics/dev-allowlist.ps1`:
+
+- **Claude** — `claude` (Claude Code CLI — a native binary, *not* node)
+- **Codex** — `codex` (Codex CLI/UI; matches `Codex` too)
+- **node** — `node` (MCP servers, language servers, other node-based dev tools)
+- **Docker** — `Docker Desktop`, `com.docker.backend/build`, `dockerd`, `docker`, plus `vmmem` / `vmmemWSL` / `wslservice` / `wsl` (the WSL2 VM that backs Docker)
+- **PowerToys** — `PowerToys*` (all modules, incl. `PowerToys.Awake`)
+- **Tailscale** — `tailscaled`, `Tailscale-IPN`, `tailscale`
+
+Notes:
+- The filter applies **only to the top-consumers tables**. The KNOWN HOGS check and VM section stay unfiltered on purpose, so `Docker Desktop` / `vmmemWSL` still surface there.
+- A footer **always prints what was hidden** (`(suppressed from top tables: node x7, Docker x3 … totaling Ns CPU / N GB RAM)`), so nothing vanishes silently.
+- `node` is matched by name, so a *rogue* non-dev `node` would be hidden too — but it's only summarized in the footer, not erased. Confirm node processes with `Get-CimInstance Win32_Process -Filter "name='node.exe'" | Select ProcessId,CommandLine`.
+- `-Exclude 'msedge*','Cursor'` hides extra names; `-OnlyDev` inverts the filter to show just the dev stack's own footprint.
 
 ## Reading the snapshot
 
