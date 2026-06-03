@@ -69,6 +69,7 @@ claude-local/
 │   │   │   ├── perf-watch.ps1         # Continuous threshold monitor (interactive)
 │   │   │   ├── perf-capture.ps1       # Unattended background monitor -> log (intermittent)
 │   │   │   ├── perf-analyze.ps1       # Parse a capture log -> culprits + slow windows
+│   │   │   ├── proc-track.ps1         # Track named procs' CPU+I/O over time (AV/EDR scan bursts); -Summarize reads it back
 │   │   │   └── dev-allowlist.ps1      # Shared dev-tool allowlist (dot-sourced by perf-* for -ExcludeDev)
 │   │   ├── startup/
 │   │   │   ├── startup-inventory.ps1  # Read-only audit of every startup vector
@@ -162,6 +163,7 @@ Scripts Claude can run directly. All paths are relative — no hardcoded machine
 | `tools/windows/diagnostics/perf-watch.ps1` | Continuous monitor; highlights processes crossing CPU % or RAM MB thresholds (interactive, console) | `-IntervalSec`, `-CpuThreshold`, `-RamThresholdMb`, `-ExcludeDev`, `-Exclude <names>`, `-OnlyDev` |
 | `tools/windows/diagnostics/perf-capture.ps1` | Unattended background monitor; appends timestamped CPU/disk/RAM samples + spike flag to a log (for intermittent slowdowns); writes a PID file | `-IntervalSec`, `-CpuPct`, `-DiskQ`, `-DurationMin` |
 | `tools/windows/diagnostics/perf-analyze.ps1` | Parse a perf-capture log into ranked culprits, slow-time windows, and an optional time-focused view | `-Path`, `-Around HH:mm`, `-WindowMin`, `-CpuPct`, `-ExcludeDev`, `-Exclude <names>`, `-OnlyDev` |
+| `tools/windows/diagnostics/proc-track.ps1` | Track named processes' CPU% + file-I/O ops/sec + RAM over time to a log (catches AV/EDR scan bursts that `perf-capture`'s CPU/disk-queue thresholds miss — high IOPS, low queue); `-Summarize` reads the log back | `-Names`, `-IntervalSec`, `-DurationMin`, `-SpikeCpu`, `-SpikeIops`, `-Summarize`, `-Path` |
 | `tools/windows/diagnostics/dev-allowlist.ps1` | Shared dev-tool allowlist + matcher (`node`/Docker+WSL/PowerToys/Tailscale); dot-sourced by the perf-* tools to power `-ExcludeDev`. Not run directly | _(library — dot-sourced)_ |
 | `tools/windows/startup/startup-inventory.ps1` | Read-only audit: Run keys (incl. WOW6432), startup folders, logon/boot tasks, auto-start services, with enable/disable state | `-IncludeMicrosoftTasks`, `-SaveLog` |
 | `tools/windows/startup/inspect-task.ps1` | Show full details of named scheduled task(s): action, principal, triggers | `-Name <task>[,<task>...]` |

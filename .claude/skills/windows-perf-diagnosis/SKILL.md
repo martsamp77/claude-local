@@ -20,6 +20,10 @@ Run from the repo root (relative paths, no elevation needed):
 
 # Continuous monitor — use to catch intermittent spikes (live "what's busy NOW")
 .\tools\windows\diagnostics\perf-watch.ps1 [-IntervalSec 5] [-CpuThreshold 25] [-RamThresholdMb 800] [-ExcludeDev]
+
+# Track specific named processes' CPU + file-I/O over time (AV/EDR/agent overhead), then read it back
+.\tools\windows\diagnostics\proc-track.ps1 -Names MsMpEng,MpDefenderCoreService,SnapAgent,ztac -IntervalSec 10
+.\tools\windows\diagnostics\proc-track.ps1 -Summarize
 ```
 
 Saved logs land in `logs/windows/diagnostics/` (gitignored).
@@ -40,6 +44,17 @@ Notes:
 - A footer **always prints what was hidden** (`(suppressed from top tables: node x7, Docker x3 … totaling Ns CPU / N GB RAM)`), so nothing vanishes silently.
 - `node` is matched by name, so a *rogue* non-dev `node` would be hidden too — but it's only summarized in the footer, not erased. Confirm node processes with `Get-CimInstance Win32_Process -Filter "name='node.exe'" | Select ProcessId,CommandLine`.
 - `-Exclude 'msedge*','Cursor'` hides extra names; `-OnlyDev` inverts the filter to show just the dev stack's own footprint.
+
+## AV/EDR scan bursts (Defender Passive Mode)
+
+When the box feels horrible while developing but `perf-capture` / `perf-snapshot` look calm, suspect a **security agent scanning files in bursts**. Key facts seen on a real managed box:
+
+- Microsoft Defender can run in **Passive Mode** (a third-party AV is registered as primary). `Get-MpComputerStatus` then shows `RealTimeProtectionEnabled=False` / `AMRunningMode=Passive Mode` — but `MsMpEng` **still runs passive/scheduled scans** (default schedule: daily 02:00, idle-only, 50% CPU cap). One was caught bursting **182% CPU and ~5,600 file-ops/sec**.
+- These bursts are **invisible to `perf-capture`'s thresholds**: a scan is high *IOPS* but low *disk-queue* and well under `CPU≥60%` of a 32-thread box, so it never trips a SLOW WINDOW. A "calm" capture does **not** rule out an AV scan.
+- Measure it directly with **`proc-track.ps1`** (CPU% + file-I/O ops/sec per named agent, over time): `-Names MsMpEng,MpDefenderCoreService` plus this machine's third-party agents (e.g. Blackpoint `SnapAgent`/`ztac`, Datto `agent`/`HUNTAgent`/`CagService`, other AV `endpointprotection`). Record during real work, then `proc-track.ps1 -Summarize`.
+- If an agent's I/O bursts line up with the felt-slow moments, the fix is **dev-path AV exclusions via IT** (`C:\…\Workspace`, `node_modules`, build caches) — **not** disabling the agent. Never disable Defender or a managed EDR without an explicit, named instruction.
+
+> Side note: a slow `Get-Counter` / Resource Monitor / Task Manager *during* such a burst is a symptom of the scan thrashing WMI/disk, not a broken perf subsystem — counters return to ~1–2 s once the box is calm.
 
 ## Reading the snapshot
 

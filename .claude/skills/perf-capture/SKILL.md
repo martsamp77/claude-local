@@ -38,6 +38,8 @@ The analyzer's most important output is **whether any sample crossed the thresho
 
 Always state which fork you're on. A calm log during a slow moment is a *positive finding*, not an inconclusive one — it rules out three whole categories.
 
+**One blind spot to name on the calm fork:** a calm capture can still hide a **process-level I/O storm** — most often an antivirus/EDR scan. Scanning drives thousands of *file* ops/sec while staying low on *total CPU* and *disk-queue depth*, so it never crosses `CPU≥60%` / `DiskQ≥2` and no slow window appears. On Windows, Defender does this even in Passive Mode (`MsMpEng` running scheduled scans while real-time is off). If the user feels lag during file-heavy work (builds, saves, git) but the capture is calm, measure the suspect agent directly with `tools/windows/diagnostics/proc-track.ps1` (per-process CPU% **and** file-I/O ops/sec over time, `-Summarize` to read it back) before concluding GPU/network.
+
 ## Tips
 
 - The `SPIKE` flag is a convenience marker; the per-line top-process list is logged **every** sample, so a single pegged core still shows even if total CPU never hits the flag threshold (one core of 32 ≈ 3% total).
