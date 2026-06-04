@@ -56,6 +56,19 @@ When the box feels horrible while developing but `perf-capture` / `perf-snapshot
 
 > Side note: a slow `Get-Counter` / Resource Monitor / Task Manager *during* such a burst is a symptom of the scan thrashing WMI/disk, not a broken perf subsystem — counters return to ~1–2 s once the box is calm.
 
+## Whole-desktop / perceptual slowness (calm counters, mouse + UI laggy)
+
+When the user reports the *whole desktop* feels slow — **mouse movement, window dragging, typing, switching apps, everything** — but `perf-snapshot`/`perf-capture` show idle CPU/disk/RAM and per-core/`proc-track` show no saturation, the bottleneck is **not compute/IO**. Mouse and window dragging depend on the display/GPU/input pipeline and almost nothing else, so work that layer:
+
+1. **Throttle?** `Get-CimInstance Win32_Processor | Select CurrentClockSpeed,MaxClockSpeed,LoadPercentage` + `powercfg /q SCHEME_CURRENT SUB_PROCESSOR PROCTHROTTLEMAX`. Current clock far below max, or proc max-state < 100% (`0x64`), means the CPU is capped → uniformly slow. (High-performance plan with min=max=100% = no throttle.)
+2. **Remote session?** `qwinsta` — if the active session is `rdp-tcp#…` rather than `console`, the lag is the remote pipe, not the PC (which looks idle). Rule this out first.
+3. **Multi-GPU cross-adapter compositing** (common cause). `Get-CimInstance Win32_VideoController | ? CurrentRefreshRate` — if two monitors are split across two GPUs (e.g. one on a discrete card, one on the CPU's integrated graphics), DWM syncs/copies frames across adapters every refresh → global micro-stutter while GPU utilization **and** DWM CPU read ~0%. Fix: put all monitors on the discrete GPU, or disable the iGPU in Device Manager.
+4. **Display refresh / timing.** A panel running below its rated refresh (e.g. 59 Hz on a 60/75/144 Hz display) makes the whole desktop feel sluggish; an odd value like 59 vs 60 hints at a cable/port/EDID issue. Set the rated refresh (Settings → Display → Advanced display); try another cable/port.
+5. **Driver DPC/ISR latency.** The `% DPC Time` / `% Interrupt Time` counters are coarse — a driver can inject latency spikes without raising them. Run **LatencyMon** for a few minutes; it names the offending driver (GPU, NIC, audio, storage). This is the canonical tool for "everything stutters but the PC is idle."
+6. **Input device.** A misbehaving mouse/HID driver or wireless-dongle interference makes the cursor specifically laggy.
+
+**Key principle:** a machine that measures healthy on *every* sweep is itself the finding — stop trimming processes/startup items and look at the display → GPU → driver → input path.
+
 ## Reading the snapshot
 
 **CPU column is accumulated seconds**, not live %. A process showing 9000s has burned 9000 CPU-seconds since it started. To get live activity, run `perf-watch` for 30 seconds and watch the delta column.
