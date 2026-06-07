@@ -8,7 +8,7 @@ When you open Claude Code in this directory on any machine, `CLAUDE.md` is auto-
 
 | OS | Status | Skills available | Tools available |
 |---|---|---|---|
-| Windows 11 | ✅ Full | 11 (`windows-*`, `winget-packages`, `nilesoft-shell`) | 8 (perf ×4, startup ×2, monitoring ×2) |
+| Windows 11 | ✅ Full | 11 (`windows-*`, `winget-packages`, `nilesoft-shell`) | 9 (perf ×4, startup ×3, monitoring ×2) |
 | Linux | ✅ Baseline | 4 (`linux-perf-diagnosis`, `linux-systemd`, `linux-packages`, `linux-env-vars`) | 1 native + 2 shared (`tools/unix`) |
 | macOS | ✅ Baseline | 5 (`macos-perf-diagnosis`, `macos-launchd`, `macos-homebrew`, `macos-defaults`, `macos-env-vars`) | 1 native + 2 shared (`tools/unix`) |
 | WSL | ↪ Treated as Linux | inherits Linux scope; flags `/mnt/c/...` writes | inherits Linux |
@@ -41,7 +41,7 @@ claude-local/
 ├── .claude/
 │   ├── settings.json                  # Committed: hooks (guard + session-start), cross-OS via pwsh
 │   ├── settings.local.json            # Per-machine permissions (optional)
-│   ├── commands/                      # Slash commands (/perf, /startup, /ship, /capture)
+│   ├── commands/                      # Slash commands (/perf, /startup, /disable-startup, /ship, /capture)
 │   ├── hooks/                         # PreToolUse safety guard + SessionStart orientation (pwsh)
 │   ├── agents/                        # Subagents (perf-analyst)
 │   └── skills/                        # Domain skills, auto-discovered by name
@@ -72,8 +72,9 @@ claude-local/
 │   │   │   ├── proc-track.ps1         # Track named procs' CPU+I/O over time (AV/EDR scan bursts); -Summarize reads it back
 │   │   │   └── dev-allowlist.ps1      # Shared dev-tool allowlist (dot-sourced by perf-* for -ExcludeDev)
 │   │   ├── startup/
-│   │   │   ├── startup-inventory.ps1  # Read-only audit of every startup vector
-│   │   │   └── inspect-task.ps1       # Deep-dive on named scheduled task(s)
+│   │   │   ├── startup-inventory.ps1     # Read-only audit of every startup vector
+│   │   │   ├── inspect-task.ps1          # Deep-dive on named scheduled task(s)
+│   │   │   └── disable-startup-item.ps1  # Reversibly disable a startup item (presets; -Undo)
 │   │   └── monitoring/
 │   │       ├── scantopdf-watchdog.ps1          # Self-healing watchdog for ScanToPDF
 │   │       └── install-scantopdf-watchdog.ps1  # Installer: SYSTEM task + event-log source + batch cap
@@ -167,6 +168,7 @@ Scripts Claude can run directly. All paths are relative — no hardcoded machine
 | `tools/windows/diagnostics/dev-allowlist.ps1` | Shared dev-tool allowlist + matcher (`node`/Docker+WSL/PowerToys/Tailscale); dot-sourced by the perf-* tools to power `-ExcludeDev`. Not run directly | _(library — dot-sourced)_ |
 | `tools/windows/startup/startup-inventory.ps1` | Read-only audit: Run keys (incl. WOW6432), startup folders, logon/boot tasks, auto-start services, with enable/disable state | `-IncludeMicrosoftTasks`, `-SaveLog` |
 | `tools/windows/startup/inspect-task.ps1` | Show full details of named scheduled task(s): action, principal, triggers | `-Name <task>[,<task>...]` |
+| `tools/windows/startup/disable-startup-item.ps1` | Reversibly disable a startup item (auto-start service + Run entry + processes); backs up first, prints a `RunAs` block instead of auto-elevating, `-Undo` reverses. Ships a `LogiOptionsPlus` preset | `-Preset`, `-Service`, `-RunEntry`, `-KillProcess`, `-Undo`, `-DryRun` |
 | `tools/windows/monitoring/scantopdf-watchdog.ps1` | Self-healing watchdog for ScanToPDF: restarts the stopped service, kills the hung UI / orphaned OCR engines, quarantines oversized poison PDFs, alerts to Teams + event log | `-DryRun`, `-SaveLog`, `-QuarantineSizeMB`, `-NoAlert` |
 | `tools/windows/monitoring/install-scantopdf-watchdog.ps1` | Installs the watchdog: registers the SYSTEM scheduled task, ensures the event-log source, provisions the Teams webhook, caps `maxBatchCount`. Run elevated | `-DryRun`, `-IntervalMinutes`, `-BatchCap`, `-WebhookUrl`, `-Uninstall` |
 
@@ -198,6 +200,7 @@ Portable bash, used by both Linux and macOS (the `/capture` command dispatches h
 | `/perf` | All (Windows + Linux + macOS) | Run perf-snapshot, interpret output, return top issues + recommended actions; dispatches by `Platform:` |
 | `/capture` | All (Windows + Linux + macOS) | `start`/`stop`/`status`/`analyze [HH:mm]` a background perf-capture for intermittent ("comes and goes") slowdowns; dispatches by `Platform:` |
 | `/startup` | Windows only | Run startup-inventory, classify items into disable / investigate / leave-alone tiers, stage commands |
+| `/disable-startup` | Windows only | Disable a startup item (preset or ad-hoc) via `disable-startup-item.ps1`: preview → confirm → apply → verify; `-Undo` to reverse |
 | `/ship` | All | Commit any uncommitted work (with doc check) and push to the remote |
 
 ## Hooks
