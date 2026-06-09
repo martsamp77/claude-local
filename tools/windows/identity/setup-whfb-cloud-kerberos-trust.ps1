@@ -24,6 +24,13 @@ $ErrorActionPreference = 'Stop'
 
 Write-Host "== WHfB cloud Kerberos trust setup for domain '$Domain' ==" -ForegroundColor Cyan
 
+# Set-AzureADKerberosServer requires an elevated shell in addition to the domain-admin credential
+$principal = [Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdentity]::GetCurrent()
+if (-not $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)) {
+    Write-Host "This must run in an ELEVATED shell (Run as Administrator), then it will also prompt for the domain-admin credential." -ForegroundColor Red
+    exit 1
+}
+
 # 1. Module
 $mod = Get-Module -ListAvailable -Name AzureADHybridAuthenticationManagement
 if (-not $mod) {
@@ -34,9 +41,12 @@ if (-not $mod) {
 }
 Import-Module AzureADHybridAuthenticationManagement
 
-# 2. Domain-admin credential
+# 2. Domain-admin credential — prompt in the console; Get-Credential on PS 5.1
+#    pops a GUI dialog that can hide behind the window and look like a hang.
 Write-Host "[2/4] Enter the on-prem domain-admin credential for ${Domain}:"
-$domainCred = Get-Credential -Message "Domain admin for $Domain (e.g. DOMAIN\admin)"
+$credUser = Read-Host "  Username (e.g. DOMAIN\admin)"
+$credPass = Read-Host "  Password" -AsSecureString
+$domainCred = [System.Management.Automation.PSCredential]::new($credUser, $credPass)
 
 # 3. Create / update the Azure AD Kerberos server object.
 #    Idempotent: safe to re-run; rotates nothing unless -RotateServerKey is added.
