@@ -1,7 +1,7 @@
 # ScanToPDF lockup — diagnosis & auto-recovery runbook
 
-**Host:** MD-FS01 (Windows Server 2019, VM, 12 GB RAM) · **App:** ScanToPDF 6.5.0.12 (O Imaging Corp)
-**Workflow:** Assurance Scientific Labs (ASL) billing — scanned PDFs OCR'd, barcode-split, and filed.
+**Host:** `<SERVER>` (Windows Server 2019 VM) · **App:** ScanToPDF 6.5.0.12 (O Imaging Corp)
+**Workflow:** a document-scanning billing pipeline — scanned PDFs are OCR'd, barcode-split, and filed.
 **Last analyzed incident:** 2026-05-28 ~21:49 Central.
 
 ---
@@ -24,9 +24,9 @@ Install: run `tools\windows\monitoring\install-scantopdf-watchdog.ps1` from an *
 
 **The components:**
 - `ScanToPDFService.exe` — Windows service, `LocalSystem`, 64-bit, session 0. Runs **AutoFileImport**: watches the hot folder
-  `E:\Assurance Labs\Assurance Scientific\ASL- To be billed\ScanToPDF\Scan to PDF`, imports each PDF, OCRs + barcode-splits it,
+  `E:\ScanToPDF\Hot Folder`, imports each PDF, OCRs + barcode-splits it,
   saves the pieces to `…\Scan to PDF reconcilliation\`, then deletes the source (`DeleteFilesFromSourceFolder="True"`).
-- `ScanToPDF.exe` — interactive UI, runs as `MOLECULAR\goose` on the console (session 1), **32-bit** (~2–4 GB ceiling). TWAIN
+- `ScanToPDF.exe` — interactive UI, runs as `<DOMAIN>\<scan-operator>` on the console (session 1), **32-bit** (~2–4 GB ceiling). TWAIN
   scanning from the Fujitsu fi-6130.
 - `TOCRRService.exe` — **Transym OCR engine v5.1.0.100** (engine files dated 2015–2020). Spawned as a child process by both of
   the above; instances accumulate.
@@ -80,7 +80,9 @@ Runs as **SYSTEM every 3 minutes**. Each run:
   `C:\ProgramData\ScanToPDF-Watchdog\watchdog.log`. With `-SaveLog`, each run also writes
   `logs\windows\monitoring\<ts>-scantopdf-watchdog.txt` in the repo.
 - **`-DryRun`** does full detection + logging but changes nothing — safe to run unelevated.
-- Alerts **reuse the existing Teams webhook** and the registered **`ScanToPDF Alerting`** event log. Suppress with `-NoAlert`.
+- Alerts go to a **Teams webhook** (the URL is **not** stored in source — the watchdog reads it from
+  `C:\ProgramData\ScanToPDF-Watchdog\webhook.url`, else `$env:SCANTOPDF_WEBHOOK_URL`, else an explicit `-WebhookUrl`; absent all
+  three, Teams is skipped) and the registered **`ScanToPDF Alerting`** event log. Suppress everything with `-NoAlert`.
 
 ### 2. Batch cap — applied by the installer
 Sets `maxBatchCount="150"` in `OptionsConfig.xml` and `ServiceOptionsConfig.xml`. Because the app rewrites these on exit, the
@@ -88,7 +90,7 @@ installer backs them up, stops the service + UI, edits, then restarts the servic
 `-BatchCap`.
 
 ### 3. Quarantine
-The watchdog moves stuck oversized PDFs to `E:\Assurance Labs\…\ScanToPDF\Scan2PDF_Quarantine`. A human splits the file into
+The watchdog moves stuck oversized PDFs to `E:\ScanToPDF\Scan2PDF_Quarantine`. A human splits the file into
 smaller batches and re-drops it into the hot folder.
 
 ---
@@ -102,12 +104,14 @@ All from an **elevated** PowerShell (the installer refuses to run unelevated). P
 pwsh -File ".\tools\windows\monitoring\install-scantopdf-watchdog.ps1" -DryRun
 
 # 2. Install (elevated) — registers the task + applies the 150 cap (briefly stops the service & UI)
-pwsh -File ".\tools\windows\monitoring\install-scantopdf-watchdog.ps1"
+#    Pass -WebhookUrl once to provision Teams alerts (written to ProgramData, never into the repo).
+pwsh -File ".\tools\windows\monitoring\install-scantopdf-watchdog.ps1" -WebhookUrl "<teams-incoming-webhook-url>"
 
 #    Variations:
 #    -BatchCap 200        use a different cap
 #    -SkipConfigCap       register the watchdog only, leave maxBatchCount alone
 #    -SkipTask            apply the cap only
+#    (omit -WebhookUrl    keep any existing webhook.url; Teams skipped if none — event-log alerting still fires)
 
 # 3. Verify the watchdog logic against current state (safe)
 pwsh -File ".\tools\windows\monitoring\scantopdf-watchdog.ps1" -DryRun -SaveLog
@@ -115,7 +119,7 @@ pwsh -File ".\tools\windows\monitoring\scantopdf-watchdog.ps1" -DryRun -SaveLog
 # 4. Live self-heal test
 Stop-Service ScanToPDFService        # within 3 min the task restarts it and posts a Teams alert
 Get-Content "$env:ProgramData\ScanToPDF-Watchdog\watchdog.log" -Tail 40
-Get-ScheduledTask -TaskName 'ScanToPDF Watchdog' -TaskPath '\Molecular\' | Get-ScheduledTaskInfo
+Get-ScheduledTask -TaskName 'ScanToPDF Watchdog' -TaskPath '\ScanToPDF\' | Get-ScheduledTaskInfo
 
 # Uninstall
 pwsh -File ".\tools\windows\monitoring\install-scantopdf-watchdog.ps1" -Uninstall                 # remove task, keep cap
@@ -124,8 +128,8 @@ pwsh -File ".\tools\windows\monitoring\install-scantopdf-watchdog.ps1" -Uninstal
 
 Config backups are written to `backups\windows\scantopdf\<timestamp>\` (gitignored).
 
-> **Note on profiles:** the cap is written to the two main config files (current profile). The active service profile is `ASL`
-> and the UI profile is `Default`; per-profile copies can live in the SettingsVault. The installer re-reads and reports whether
+> **Note on profiles:** the cap is written to the two main config files (current profile). The active service profile may be a
+> site-specific named profile and the UI profile is typically `Default`; per-profile copies can live in the SettingsVault. The installer re-reads and reports whether
 > the value stuck — if it didn't, set the cap inside the relevant profile via the ScanToPDF UI (Options → Scan → max batch).
 
 ---
@@ -134,7 +138,7 @@ Config backups are written to `backups\windows\scantopdf\<timestamp>\` (gitignor
 
 1. `Stop-Service ScanToPDFService -Force`
 2. Kill the wedged processes: `Get-Process ScanToPDF,ScanToPDFB10,ScanToPDFx64,TOCRRService -EA SilentlyContinue | Stop-Process -Force`
-3. **Check the hot folder** `E:\Assurance Labs\…\ScanToPDF\Scan to PDF` for a large (>20 MB) PDF. If present, **move it out**
+3. **Check the hot folder** `E:\ScanToPDF\Hot Folder` for a large (>20 MB) PDF. If present, **move it out**
    (to `Scan2PDF_Quarantine`) so it stops re-triggering. Split it and re-drop it later.
 4. `Start-Service ScanToPDFService`
 5. If an operator was scanning, have them reopen the ScanToPDF window.
@@ -151,5 +155,5 @@ Once the watchdog is installed, steps 1–4 happen automatically within ~3 minut
   raises the address ceiling for big interactive scans. Check which exe the desktop shortcut / autostart uses.
 - **Security.** `C:\Scripts\Alerting-WindowsService.ps1` contains a **hardcoded plaintext SMTP password** — rotate it and move to
   a secure store (the box already has `Create-SecureStringXml.ps1` / Graph token helpers).
-- **RAM headroom.** 12 GB is shared with SnapAgent, DataSecurityPlus, RMM, Site24x7, AEMAgent, WebRoot, etc. More RAM eases the
+- **RAM headroom.** Server RAM is shared with various monitoring / security / RMM agents. More RAM eases the
   large-batch memory pressure.

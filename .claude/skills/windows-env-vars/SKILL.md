@@ -12,10 +12,10 @@ Use this skill when a task involves persistent environment variables or PATH edi
 | Scope | Where it lives | Persistence | Admin? |
 |---|---|---|---|
 | `Process` | Current PowerShell session | Until shell exits | No |
-| `User` | `HKCU\Environment` | Persists for Marty across sessions | No |
+| `User` | `HKCU\Environment` | Persists for the user across sessions | No |
 | `Machine` | `HKLM\System\CurrentControlSet\Control\Session Manager\Environment` | Persists for all users | **Yes** |
 
-Always default to `User` scope unless Marty asks for machine-wide.
+Always default to `User` scope unless the user asks for machine-wide.
 
 ## Read
 
@@ -73,7 +73,7 @@ function Remove-FromUserPath {
 }
 ```
 
-Always show Marty the diff (which entries were added/removed) before committing.
+Always show the user the diff (which entries were added/removed) before committing.
 
 ## Make new shells see the change
 

@@ -4,7 +4,7 @@
 .PLATFORM    windows
 .CATEGORY    monitoring
 .USAGE       .\tools\windows\monitoring\install-scantopdf-watchdog.ps1 [-DryRun] [-IntervalMinutes 3] [-BatchCap 150] [-SkipConfigCap] [-SkipTask] [-Uninstall]
-.WHEN        One-time setup (or removal) of the ScanToPDF auto-recovery on MD-FS01. Always preview with -DryRun first. Needs an elevated PowerShell.
+.WHEN        One-time setup (or removal) of the ScanToPDF auto-recovery. Always preview with -DryRun first. Needs an elevated PowerShell.
 #>
 # Companion installer for scantopdf-watchdog.ps1. See docs/windows/scantopdf-lockup-runbook.md.
 
@@ -21,11 +21,16 @@ param(
     # Also restore the previous config from the most recent backup during -Uninstall.
     [switch]$RestoreConfig,
     [string]$TaskName = 'ScanToPDF Watchdog',
-    [string]$TaskPath = '\Molecular\',
+    [string]$TaskPath = '\ScanToPDF\',
     [string]$ServiceName = 'ScanToPDFService',
     [string]$EventLogName   = 'ScanToPDF Alerting',
     [string]$EventLogSource = 'ScanToPDF Alerting Script',
     [string]$WatchdogScript,
+    # Watchdog state dir (must match the watchdog's -StateDir). The Teams webhook lives here, out of the repo.
+    [string]$StateDir = "$env:ProgramData\ScanToPDF-Watchdog",
+    # Teams Incoming Webhook. If supplied, it is written to $StateDir\webhook.url so the SYSTEM task can alert
+    # without the secret ever entering source control. Omit to leave any existing webhook.url untouched.
+    [string]$WebhookUrl,
     [string[]]$ConfigFiles = @(
         'C:\ProgramData\OIC\ScanToPDF_6\OptionsConfig.xml',
         'C:\ProgramData\OIC\ScanToPDF_6\ServiceOptionsConfig.xml'
@@ -111,6 +116,20 @@ try { $srcExists = [System.Diagnostics.EventLog]::SourceExists($EventLogSource) 
 if ($srcExists) { Say "Source '$EventLogSource' already present." }
 else { Do-It "Create event-log source '$EventLogSource' in log '$EventLogName'" { New-EventLog -LogName $EventLogName -Source $EventLogSource } }
 
+# --- 1b. Teams webhook (kept out of source control) ------------------------
+Step 'Teams webhook'
+$webhookFile = Join-Path $StateDir 'webhook.url'
+if ($WebhookUrl) {
+    Do-It "Write Teams webhook -> $webhookFile" {
+        if (-not (Test-Path $StateDir)) { New-Item -ItemType Directory -Path $StateDir -Force | Out-Null }
+        Set-Content -Path $webhookFile -Value $WebhookUrl.Trim() -Encoding UTF8 -NoNewline
+    }
+} elseif (Test-Path $webhookFile) {
+    Say "Existing webhook.url kept ($webhookFile)."
+} else {
+    Say "No -WebhookUrl given and no $webhookFile present - Teams alerts will be skipped (event-log alerting still fires)." 'Yellow'
+}
+
 # --- 2. scheduled task -----------------------------------------------------
 if (-not $SkipTask) {
     Step 'Scheduled task'
@@ -193,6 +212,9 @@ if (-not $SkipConfigCap) {
 # --- 4. summary ------------------------------------------------------------
 Step 'Done'
 Say "Installed (or previewed) the ScanToPDF watchdog." 'Green'
+Say ''
+Say 'Set/refresh the Teams webhook (kept out of the repo):'
+Say "  re-run with -WebhookUrl `"<url>`", or drop the URL into $($StateDir)\webhook.url"
 Say ''
 Say 'Test it now (safe, no changes):'
 Say "  pwsh -File `"$WatchdogScript`" -DryRun -SaveLog"

@@ -5,7 +5,7 @@ description: "[windows] Inspect and control Windows services — query state, st
 
 # windows-services
 
-Use this skill for managing Windows services: starting, stopping, restarting, changing startup type, querying status. Most operations need an elevated shell — call that out and let Marty re-launch rather than auto-elevating.
+Use this skill for managing Windows services: starting, stopping, restarting, changing startup type, querying status. Most operations need an elevated shell — call that out and let the user re-launch rather than auto-elevating.
 
 ## Inspect
 
@@ -65,7 +65,7 @@ sc.exe config Spooler start= delayed-auto
 
 ## Critical services — don't touch without explicit instruction
 
-Stopping these can lock Marty out, break networking, or prevent updates. Always confirm before stopping or disabling:
+Stopping these can lock the user out, break networking, or prevent updates. Always confirm before stopping or disabling:
 
 - `LanmanServer`, `LanmanWorkstation` — file sharing
 - `Dnscache` — DNS resolution
@@ -82,7 +82,7 @@ Stopping these can lock Marty out, break networking, or prevent updates. Always 
 Before changing a service to `Manual` or `Disabled`:
 
 1. Identify which apps actually depend on it (`Get-Service -RequiredServices` and search the web for the service name).
-2. Show Marty the proposed change *and* the inverse command to revert.
+2. Show the user the proposed change *and* the inverse command to revert.
 3. Apply, then verify with `Get-Service` after a reboot — services with on-demand start can show `Stopped` even when working correctly.
 
 ## Service account changes
@@ -93,4 +93,4 @@ Changing the account a service runs as is high-impact. Use:
 sc.exe config <service> obj= "DOMAIN\User" password= "<pwd>"
 ```
 
-Confirm with Marty and warn about lockouts and password rotation.
+Confirm with the user and warn about lockouts and password rotation.

@@ -1,6 +1,6 @@
 # claude-local — multi-OS sysadmin workspace
 
-This repo is Marty's home base for system-administration tasks across Windows, Linux, and macOS. One git checkout, synced across machines via push/pull. Per-machine artifacts (backups, logs) are gitignored so they don't collide.
+This repo is a home base for system-administration tasks across Windows, Linux, and macOS. One git checkout, synced across machines via push/pull. Per-machine artifacts (backups, logs) are gitignored so they don't collide.
 
 This is not a code project. There's no app to build, no tests to run. Tasks are sysadmin-flavored: *change something on this machine safely*.
 
@@ -26,9 +26,9 @@ Primary tool: `PowerShell` (PowerShell 7+ / `pwsh`). `Bash` (Git for Windows) is
 Safety:
 - **Confirm before destructive system changes.** Stopping critical services, deleting registry keys, uninstalling packages, removing scheduled tasks — pause and confirm.
 - **Back up the registry before edits.** Use `reg export <key> <path>.reg` before any `Set-ItemProperty` / `New-Item` / `Remove-Item` against the registry. Save backups to `backups\windows\registry\` (relative to repo root) with a timestamped filename.
-- **HKLM requires explicit confirmation.** `HKCU` changes affect only this user and are reversible — proceed with normal care. `HKLM` (machine-wide) changes need a clear "yes go ahead" from Marty before each write.
+- **HKLM requires explicit confirmation.** `HKCU` changes affect only this user and are reversible — proceed with normal care. `HKLM` (machine-wide) changes need a clear "yes go ahead" from the user before each write.
 - **Never disable UAC, Defender, SmartScreen, or Windows Update** without an explicit instruction naming the thing to disable.
-- **Don't auto-elevate.** If something needs admin (`HKLM`, system services, machine env vars), say so and let Marty re-launch the shell elevated rather than chaining `Start-Process -Verb RunAs`.
+- **Don't auto-elevate.** If something needs admin (`HKLM`, system services, machine env vars), say so and let the user re-launch the shell elevated rather than chaining `Start-Process -Verb RunAs`.
 
 ### When on Linux (`Platform: linux`)
 
@@ -37,9 +37,9 @@ Primary tool: `Bash`. Detect distro via `/etc/os-release` to choose between `apt
 Safety:
 - **Confirm before destructive system changes.** Stopping `systemd` units the system depends on, removing packages, editing files under `/etc/`, modifying `/etc/fstab` or `/etc/sudoers`, killing processes — pause and confirm.
 - **Back up files under `/etc/` before edits.** Copy to `backups/linux/etc/<timestamp>/` (relative to repo root) before editing in place.
-- **System-wide changes require explicit confirmation.** Per-user changes (`~/.bashrc`, `~/.config/`, user systemd units under `~/.config/systemd/user/`) are reversible — proceed with care. System-wide changes (`/etc/`, system units, `apt` install/remove) need a clear "yes" from Marty before each write.
+- **System-wide changes require explicit confirmation.** Per-user changes (`~/.bashrc`, `~/.config/`, user systemd units under `~/.config/systemd/user/`) are reversible — proceed with care. System-wide changes (`/etc/`, system units, `apt` install/remove) need a clear "yes" from the user before each write.
 - **Never modify SELinux/AppArmor enforcement, firewall rules, or sshd config** without an explicit instruction naming the thing.
-- **Don't auto-elevate.** If a command needs `sudo`, print it and let Marty run it; don't pipe to `sudo` silently.
+- **Don't auto-elevate.** If a command needs `sudo`, print it and let the user run it; don't pipe to `sudo` silently.
 
 ### When on macOS (`Platform: darwin`)
 
@@ -56,6 +56,7 @@ Safety:
 
 - **Prefer reversible changes.** A flip-back beats a reinstall. Note the inverse of every forward operation.
 - **Don't bundle unrelated work in the same commit.** If you wandered, split.
+- **A `PreToolUse` guard hook reminds you** when a command matches a destructive-system-change pattern (registry/HKLM, Defender/UAC, services, `/etc`, `systemctl`, firewall, SIP, `sudo`, …). It only warns — the normal permission prompt still applies. Treat its reminder as a cue to back up / confirm / note the inverse, not as approval.
 - See [Completing a task](#completing-a-task) for the doc-update + commit workflow that applies everywhere.
 
 ## Where things live
@@ -63,8 +64,11 @@ Safety:
 All paths below are relative to the repo root.
 
 - **Skills** — `.claude/skills/<name>/SKILL.md`. Each skill is one folder with a `SKILL.md` containing YAML frontmatter (`name`, `description`) and a tight body. Loaded automatically by Claude Code.
-- **Commands** — `.claude/commands/<name>.md`. Slash commands invokable as `/<name>` in Claude Code. Each file describes what Claude should do when the command runs.
-- **Tools** — `tools/<os>/<category>/<name>.ps1` (or `.sh` on Linux/macOS). Executable scripts. All paths inside scripts are relative (via `$PSScriptRoot` / `$(dirname "$0")`). See **Tool inventory** below.
+- **Commands** — `.claude/commands/<name>.md`. Slash commands invokable as `/<name>` in Claude Code. Each file describes what Claude should do when the command runs (the first line is the command's description).
+- **Hooks** — `.claude/hooks/<name>.ps1`, registered in `.claude/settings.json`. `pwsh` scripts Claude Code runs automatically on events. Currently: `guard-destructive.ps1` (`PreToolUse` — warns on destructive system commands, never blocks) and `session-start.ps1` (`SessionStart` — injects the OS tool inventory + perf-capture monitor status). Cross-OS via `pwsh`; Linux/macOS need PowerShell installed (see `.claude/hooks/README.md`).
+- **Agents** — `.claude/agents/<name>.md` (frontmatter `name`, `description`, optional `tools`/`model`). Subagents Claude can delegate to. Currently: `perf-analyst` (read-only capture-log analysis).
+- **Tools** — `tools/<os>/<category>/<name>.ps1` (or `.sh` on Linux/macOS; `tools/unix/` for portable bash shared by Linux + macOS). Executable scripts. All paths inside scripts are relative (via `$PSScriptRoot` / `$(dirname "$0")`). See **Tool inventory** below.
+- **Docs** — `docs/<os>/<name>.md`. Tracked (not gitignored) runbooks / root-cause diagnoses that accompany a tool or skill — the long-form "why + how to recover" a `SKILL.md` is too tight to hold (e.g. `docs/windows/scantopdf-lockup-runbook.md`).
 - **Staging** — `staging/<os>/<area>/`. Config file edits that need elevation to copy into place (e.g. Nilesoft `.nss`, `.reg` files on Windows).
 - **Backups** — `backups/<os>/<area>/<timestamp>/`. Gitignored. Timestamped snapshots before destructive changes.
 - **Logs** — `logs/<os>/<category>/`. Gitignored. Output from tool runs that requested `-SaveLog`.
@@ -72,7 +76,7 @@ All paths below are relative to the repo root.
 
 ## Tool inventory
 
-Tools live under `tools/<os>/<category>/`. At the start of any session where a system, performance, or diagnostic task comes up, list the tools for the current OS only:
+Tools live under `tools/<os>/<category>/`. The `SessionStart` hook (`.claude/hooks/session-start.ps1`) already injects this inventory for the current OS at session start, so you usually have it. To refresh it mid-session, list the tools for the current OS only:
 
 ```powershell
 # Windows:
@@ -89,7 +93,7 @@ Then read the first 15 lines of each result. The `.SYNOPSIS`, `.PLATFORM`, and `
 ./tools/<os>/<category>/<name>.sh [params]     # Linux / macOS
 ```
 
-Every script uses this header format — the `.WHEN` field is the trigger: what Marty says that should make you reach for this tool. Skip scripts whose `.PLATFORM` doesn't match the current OS.
+Every script uses this header format — the `.WHEN` field is the trigger: what the user says that should make you reach for this tool. Skip scripts whose `.PLATFORM` doesn't match the current OS.
 
 ```powershell
 <#
@@ -131,6 +135,23 @@ When a recurring task would benefit from a reusable script:
 4. If the script produces output worth saving, write to `$repoRoot/logs/<os>/<category>/<timestamp>-<name>.txt` behind a `-SaveLog` switch.
 5. Update the tools table in README.md.
 
+## Adding new hooks
+
+When an event should trigger automatic behavior (safety reminders, session orientation, post-edit checks):
+
+1. Write the logic as a `pwsh` script in `.claude/hooks/<name>.ps1` (pwsh runs on all three OSes). Read the hook JSON from stdin, keep it read-only unless intentionally gating, wrap in try/catch, and **always `exit 0`** unless you deliberately block (exit 2). Never break the session over a hook.
+2. Register it in `.claude/settings.json` under the event (`PreToolUse`, `SessionStart`, …) with `pwsh -NoProfile -File "${CLAUDE_PROJECT_DIR}/.claude/hooks/<name>.ps1"`. Use a `matcher` (e.g. `Bash|PowerShell`) for `PreToolUse`.
+3. To warn without blocking, emit `{"hookSpecificOutput":{"hookEventName":"<event>","additionalContext":"…"}}` — do NOT set `permissionDecision:"allow"` (that would skip the permission prompt).
+4. Document it in `.claude/hooks/README.md` and the Hooks table in README.md.
+
+## Adding new agents
+
+When a sub-task benefits from isolation (big logs, parallel work, a narrow read-only role):
+
+1. Create `.claude/agents/<name>.md` with frontmatter `name` + `description` (required), optionally `tools`, `model`, `color`. The body is the agent's system prompt.
+2. Keep the tool list minimal and the role tight. State clearly if it is read-only.
+3. Add a row to the Agents table in README.md.
+
 ## Completing a task
 
 After any task that adds or modifies a tool, skill, command, staging file, or any other repo artifact:
@@ -138,7 +159,7 @@ After any task that adds or modifies a tool, skill, command, staging file, or an
 1. **Verify** — smoke-test the change. Don't claim it works without running it.
 2. **Update documentation** — if you added a skill, tool, or command, add a row to the relevant table in README.md and a one-line entry in the appropriate list in CLAUDE.md (if it isn't already there). If you modified one, update its description.
 3. **Commit** — stage the changed files explicitly by name and commit with a clear message describing what changed and why. Use the `Co-Authored-By` trailer. Do not commit `backups/` or `logs/`.
-4. **Push for successful improvements.** When the change is a real improvement to the project (new tool/skill/command, or material enhancement of one) and verification passed, push to origin. The `completing-an-improvement` skill encapsulates the full lifecycle including a "great commit message" guide. For partial work, debugging detours, or ad-hoc fixes that aren't repo improvements, don't auto-push — Marty can run `/ship` when ready.
+4. **Push for successful improvements.** When the change is a real improvement to the project (new tool/skill/command, or material enhancement of one) and verification passed, push to origin. The `completing-an-improvement` skill encapsulates the full lifecycle including a "great commit message" guide. For partial work, debugging detours, or ad-hoc fixes that aren't repo improvements, don't auto-push — the user can run `/ship` when ready.
 
 If a task was purely conversational (no files changed), skip 1–4.
 
@@ -157,6 +178,7 @@ Each skill's `description` frontmatter starts with a scope tag — `[windows]`, 
 - `windows-startup-management` — audit Run keys, startup folders, logon scheduled tasks, auto-start services; triage what to disable
 - `nilesoft-shell` — context-menu customization via Nilesoft Shell (.nss configs, register/unregister, themes)
 - `windows-dev-environment` — git, SSH, WSL, language toolchains, PowerShell profile, VS Code on Windows
+- `windows-hello-diagnosis` — diagnose and fix Windows Hello PIN/fingerprint failures; covers services, NGC folder, Azure AD device registration (`dsregcmd /forcerecovery`), Intune WHfB policy, TPM lockout
 
 **Linux:**
 - `linux-perf-diagnosis` — diagnose slow/unresponsive Linux box; interpret perf-snapshot.sh output
@@ -175,10 +197,13 @@ Each skill's `description` frontmatter starts with a scope tag — `[windows]`, 
 - `unix-dev-environment` — git, SSH, language toolchains via mise/asdf, shell profile, VS Code on Linux/macOS
 
 **Cross-platform (`[all]`):**
+- `perf-capture` — catch intermittent ("comes and goes") slowdowns a one-shot snapshot misses: start an unattended background monitor, then analyze the log by timestamp; the spike-vs-calm fork
 - `completing-an-improvement` — full ship cycle for a verified repo improvement: docs, commit, push
 
 ## Existing commands
 
 - `/perf` — run a performance snapshot and get an interpreted summary; dispatches by Platform: win32 → `windows-perf-diagnosis`, linux → `linux-perf-diagnosis`, darwin → `macos-perf-diagnosis`
+- `/capture` — `start`/`stop`/`status`/`analyze [HH:mm]` a background perf-capture for intermittent ("comes and goes") slowdowns; dispatches by Platform (win32 → `tools\windows\diagnostics\perf-{capture,analyze}.ps1`, linux/darwin → `tools/unix/diagnostics/perf-{capture,analyze}.sh`); interprets via the `perf-capture` skill + the OS perf-diagnosis skill
 - `/startup` — audit startup items and recommend what to disable (Windows-only; no equivalent planned for Linux/macOS — startup vectors differ)
+- `/disable-startup` — disable a startup item (preset like `LogiOptionsPlus`, or ad-hoc) reversibly via `disable-startup-item.ps1`; preview → confirm → apply → verify (Windows-only)
 - `/ship` — commit any uncommitted work and push to the remote (cross-platform)

@@ -4,10 +4,10 @@
 .PLATFORM    windows
 .CATEGORY    monitoring
 .USAGE       .\tools\windows\monitoring\scantopdf-watchdog.ps1 [-DryRun] [-SaveLog] [-QuarantineSizeMB 20] [-HotFolder <path>] [-NoAlert]
-.WHEN        "ScanToPDF keeps locking up", "the scanner service hangs at night", scheduled every few minutes as SYSTEM to auto-recover ScanToPDF on MD-FS01. Run with -DryRun first to see what it would do.
+.WHEN        "ScanToPDF keeps locking up", "the scanner service hangs at night", scheduled every few minutes as SYSTEM to auto-recover ScanToPDF. Run with -DryRun first to see what it would do.
 #>
 # ---------------------------------------------------------------------------
-# Background: ScanToPDF (MD-FS01) hangs when a large end-of-day batch (250-500
+# Background: ScanToPDF hangs when a large end-of-day batch (250-500
 # page / 25-35 MB PDF) drives the aged Transym OCR engine (TOCRRService.exe) to
 # access-violate. The 32-bit UI then stops responding (Event ID 1002) and the
 # unconsumed source PDF gets retried on every restart -> repeat lockups.
@@ -26,8 +26,8 @@ param(
     [string]$ServiceName = 'ScanToPDFService',
     # Interactive UI process names (no .exe) to watch for hangs.
     [string[]]$UiProcessNames = @('ScanToPDF', 'ScanToPDFB10'),
-    # AutoFileImport hot folder watched by the ScanToPDF service.
-    [string]$HotFolder = 'E:\Assurance Labs\Assurance Scientific\ASL- To be billed\ScanToPDF\Scan to PDF',
+    # AutoFileImport hot folder watched by the ScanToPDF service. Set -HotFolder to your site's path.
+    [string]$HotFolder = 'E:\ScanToPDF\Hot Folder',
     # Where poison files get moved. Defaults to a sibling of the hot folder.
     [string]$QuarantineFolder,
     # A hot-folder PDF at/above this size is a candidate for the poison-file guard.
@@ -48,8 +48,10 @@ param(
     [int]$UiMemoryWarnMB = 1500,
     # Runtime state + durable log live here (independent of the repo location).
     [string]$StateDir = "$env:ProgramData\ScanToPDF-Watchdog",
-    # Teams Incoming Webhook (reuses the channel already wired in C:\Scripts\Alerting-WindowsService.ps1).
-    [string]$WebhookUrl = 'https://moleculardesigns.webhook.office.com/webhookb2/436676ff-7925-463b-8d8f-da16d54f7fd9@5822f0cb-d532-4afc-ab6c-137d04895edb/IncomingWebhook/9b1809f811674800a29d3d8169782fdd/892388b5-7e62-4284-95f3-d5392f2c77f8',
+    # Teams Incoming Webhook. Left unset here to keep the secret out of source control:
+    # resolved at runtime from $StateDir\webhook.url or $env:SCANTOPDF_WEBHOOK_URL (see below).
+    # If none is found, Teams alerts are skipped (event-log + local-log alerting still works).
+    [string]$WebhookUrl,
     # Suppress Teams + event-log alerts (still writes the local log).
     [switch]$NoAlert,
     # Custom event log + source already registered on the box by the alerting script.
@@ -59,7 +61,16 @@ param(
 
 $ErrorActionPreference = 'Stop'
 if (-not $QuarantineFolder) {
-    $QuarantineFolder = Join-Path (Split-Path -Parent $HotFolder) 'Scan2PDF_Quarantine'
+    # [IO.Path] is pure string parsing - unlike Split-Path / Join-Path it won't throw if the hot-folder drive isn't mounted (e.g. -DryRun off-box).
+    $QuarantineFolder = [System.IO.Path]::Combine([System.IO.Path]::GetDirectoryName($HotFolder), 'Scan2PDF_Quarantine')
+}
+
+# Resolve the Teams webhook from an un-versioned local source so the secret never lives in the repo.
+# Precedence: explicit -WebhookUrl > $StateDir\webhook.url > $env:SCANTOPDF_WEBHOOK_URL > none (Teams skipped).
+if (-not $WebhookUrl) {
+    $whFile = Join-Path $StateDir 'webhook.url'
+    if (Test-Path $whFile)              { $WebhookUrl = (Get-Content $whFile -Raw -ErrorAction SilentlyContinue).Trim() }
+    elseif ($env:SCANTOPDF_WEBHOOK_URL) { $WebhookUrl = $env:SCANTOPDF_WEBHOOK_URL }
 }
 
 # -- output plumbing ---------------------------------------------------------

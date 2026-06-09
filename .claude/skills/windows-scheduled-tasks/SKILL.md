@@ -83,7 +83,7 @@ New-ScheduledTaskPrincipal -UserId "$env:USERDOMAIN\$env:USERNAME" -LogonType Pa
 New-ScheduledTaskPrincipal -UserId "SYSTEM" -LogonType ServiceAccount -RunLevel Highest
 ```
 
-`Interactive` only fires when Marty is signed in. `Password` runs even when signed out but requires `Register-ScheduledTask -Password <plaintext>`. SYSTEM is the right choice for headless boot-time jobs.
+`Interactive` only fires when the user is signed in. `Password` runs even when signed out but requires `Register-ScheduledTask -Password <plaintext>`. SYSTEM is the right choice for headless boot-time jobs.
 
 ## Run, disable, unregister
 
@@ -94,7 +94,7 @@ Enable-ScheduledTask  -TaskName "MyJob" -TaskPath "\Custom\"
 Unregister-ScheduledTask -TaskName "MyJob" -TaskPath "\Custom\" -Confirm:$false
 ```
 
-Confirm with Marty before `Unregister-ScheduledTask` for any task you didn't create yourself.
+Confirm with the user before `Unregister-ScheduledTask` for any task you didn't create yourself.
 
 ## Tips
 

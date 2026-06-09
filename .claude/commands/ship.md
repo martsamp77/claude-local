@@ -11,4 +11,4 @@ Steps:
 5. Run `git push` to push the current branch to origin.
 6. Confirm the push succeeded and report the remote URL and branch.
 
-Do not push if the push would require force-push. Warn Marty instead.
+Do not push if the push would require force-push. Warn the user instead.

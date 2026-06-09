@@ -107,7 +107,7 @@ cat > ~/.config/systemd/user/myjob.service <<'EOF'
 Description=My job
 
 [Service]
-ExecStart=/home/marty/bin/my-job.sh
+ExecStart=/home/<user>/bin/my-job.sh
 Restart=on-failure
 
 [Install]

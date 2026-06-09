@@ -16,11 +16,11 @@ winget install --id Git.Git --exact
 winget install --id GitHub.cli --exact   # gh
 ```
 
-Common config — confirm name/email with Marty before setting:
+Common config — confirm name/email with the user before setting:
 
 ```powershell
-git config --global user.name  "Marty Sampson"
-git config --global user.email "martysampson@gmail.com"
+git config --global user.name  "Your Name"
+git config --global user.email "you@example.com"
 git config --global init.defaultBranch main
 git config --global core.autocrlf true                    # Windows: CRLF on checkout, LF on commit
 git config --global core.editor "code --wait"
@@ -39,10 +39,10 @@ git config --global --edit          # opens in $EDITOR
 
 ## SSH keys
 
-Default location is `C:\Users\marty\.ssh\`. Generate a key (ed25519 is the modern default):
+Default location is `C:\Users\<user>\.ssh\`. Generate a key (ed25519 is the modern default):
 
 ```powershell
-ssh-keygen -t ed25519 -C "marty@<machine>" -f $HOME\.ssh\id_ed25519
+ssh-keygen -t ed25519 -C "you@<machine>" -f $HOME\.ssh\id_ed25519
 ```
 
 Use `ssh-agent` to avoid retyping the passphrase:

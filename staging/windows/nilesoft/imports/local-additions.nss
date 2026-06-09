@@ -1,5 +1,5 @@
 // ============================================================
-// local-additions.nss -- Marty's Nilesoft customizations
+// local-additions.nss -- the user's Nilesoft customizations
 // Iteration 3: + per-extension editor launchers
 // ============================================================
 

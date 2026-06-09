@@ -1,11 +1,11 @@
 ---
 name: windows-startup-management
-description: "[windows] Audit and manage Windows startup items — Run keys, startup folders, logon scheduled tasks, auto-start services. Use when Marty asks what's launching at logon, what to disable, or wants to slim down boot."
+description: "[windows] Audit and manage Windows startup items — Run keys, startup folders, logon scheduled tasks, auto-start services. Use when the user asks what's launching at logon, what to disable, or wants to slim down boot."
 ---
 
 # windows-startup-management
 
-Use when Marty says any of:
+Use when the user says any of:
 - "what's launching at startup"
 - "audit my startup items"
 - "what should I disable"
@@ -20,9 +20,15 @@ Use when Marty says any of:
 
 # Deep-dive on one or more named scheduled tasks (action / principal / triggers)
 .\tools\windows\startup\inspect-task.ps1 -Name SidebarStartup,StartCN
+
+# Reversibly DISABLE an item (service + Run entry + processes), backup first. The action tool.
+.\tools\windows\startup\disable-startup-item.ps1 -Preset LogiOptionsPlus [-DryRun] [-Undo]
+.\tools\windows\startup\disable-startup-item.ps1 -Service <svc> [-ServiceStartupType Disabled|Manual] -RunEntry <name> [-RunHive HKLM|HKCU] -KillProcess <proc>
 ```
 
-`startup-inventory.ps1` prints five sections; read all of them before recommending anything. The slash command `/startup` runs the inventory and asks Claude to interpret it.
+`startup-inventory.ps1` and `inspect-task.ps1` are read-only audits. `disable-startup-item.ps1` is the only tool that **changes** anything: it stops + sets a service's start type, soft-disables a Run entry via the StartupApproved flag, kills processes, and backs up to `backups/windows/registry/` first. It refuses to auto-elevate — run non-elevated and it prints a ready-to-paste `RunAs` block. `-Undo` reverses it. Preview with `-DryRun`. Add new offenders as presets in the `$Presets` table at the top of the script.
+
+The slash command `/startup` runs the inventory and interprets it; `/disable-startup <preset|item>` drives the disabler (preview → confirm → apply → verify).
 
 ## The four startup vectors
 
@@ -48,19 +54,19 @@ Task Manager's Startup tab toggles `HKCU\...\Explorer\StartupApproved\Run` (and 
 
 When asked "what should I disable", classify each item into one of these:
 
-**Tier 1 — Disable freely (zero downside if Marty isn't actively using the feature):**
+**Tier 1 — Disable freely (zero downside if the user isn't actively using the feature):**
 - Logi Options+ (`OptionsPlusUpdaterService` service + `Logitech Download Assistant` HKLM Run) — known runaway hog
 - Razer Synapse (HKLM WOW6432 Run) if no Razer peripherals
 - Adobe Creative Cloud + CCXProcess (HKLM WOW6432 Run) + `AdobeARMservice` + `AdobeUpdateService` services + `\Adobe Acrobat Update Task`
 - AMD telemetry: `AUEPLauncher` (User Experience Program Data Uploader) — pure metrics
 - Foxit/Brave/etc. update services — only matter if app is open
-- Snagit, Wispr Flow, Cursor's own helper, anything in startup folder Marty doesn't want
+- Snagit, Wispr Flow, Cursor's own helper, anything in startup folder the user doesn't want
 
 **Tier 2 — Investigate before touching:**
 - Anything labeled `NO-RECORD` in WOW6432Node — surfaces 32-bit installers' Run entries the GUI doesn't show
 - Unknown scheduled tasks at `\` root (no `\Microsoft\` path) — use `inspect-task.ps1` to see what they actually launch
 - Hardware-vendor services with names that look like drivers (atiesrxx, RtkAudUService) — these are usually load-bearing, leave them
-- StartCN / StartDVR — AMD Radeon Software UI launchers; safe to remove if Marty doesn't use the overlay/recording, but reappear after GPU driver updates
+- StartCN / StartDVR — AMD Radeon Software UI launchers; safe to remove if the user doesn't use the overlay/recording, but reappear after GPU driver updates
 
 **Tier 3 — Don't touch (work-mandated or load-bearing):**
 - Datto stack: `HUNTAgent` (Datto EDR), `CagService` (Datto RMM), `dattorollbackservice`, `Datto EDR` HKLM Run, `CentraStage Gui` WOW6432 Run — work EDR/RMM
@@ -71,7 +77,7 @@ When asked "what should I disable", classify each item into one of these:
 - `RtkAudUService` / `RtkAudioUniversalService` — Realtek audio
 - `Tailscale` — actively used (startup folder + service)
 - `OneDrive` (HKCU Run) — actively used
-- `PowerToys\Autorun for msampson` — actively used
+- `PowerToys\Autorun for <user>` — actively used
 - `ParkControl` (Bitsum tray) — pairs with Bitsum Highest Performance power plan, keep
 
 ## Disable vs. remove vs. uninstall
@@ -90,19 +96,26 @@ When asked "what should I disable", classify each item into one of these:
 - HKCU Run, user startup folder, user-context scheduled tasks → no elevation needed.
 - HKLM Run, WOW6432Node Run, machine startup folder, services, scheduled tasks owned by SYSTEM/AMD/etc. → elevated PowerShell required.
 
-Per `CLAUDE.md`: **don't auto-elevate**. Stage the commands and hand Marty a single block to paste into an admin shell.
+Per `CLAUDE.md`: **don't auto-elevate**. Stage the commands and hand the user a single block to paste into an admin shell.
 
 ## Common patterns
 
 ### Logi Options+ (the recurring offender)
 
-Lives in TWO places — the obvious Run key AND a Windows service:
+A perennial hog worth disabling whenever the user isn't actively customizing Logitech devices. It lives in several places — the `OptionsPlusUpdaterService` auto-start service (which relaunches the agent), the legacy `Logitech Download Assistant` HKLM Run entry, and ~240 MB of running processes (`logioptionsplus_agent` + `_appbroker` + `_updater` + `LogiPluginService`/`Ext`). There is **no** scheduled task / Run key / startup-folder entry for the agent itself — the service is the autostart vector.
+
+Just use the preset (it backs up, stops + sets the service to **Disabled**, soft-disables the Run entry, and kills the processes):
 
 ```powershell
-# Elevated:
-Set-Service -Name OptionsPlusUpdaterService -StartupType Manual
-Stop-Service -Name OptionsPlusUpdaterService
-Remove-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'Logitech Download Assistant'
+.\tools\windows\startup\disable-startup-item.ps1 -Preset LogiOptionsPlus     # add -DryRun to preview, -Undo to reverse
+```
+
+The preset uses `Disabled` rather than the table's gentler `Manual` default: the updater service exists only to auto-start and self-update, so a hard disable is the intended outcome and the app still works when launched by hand. Run non-elevated to get the `RunAs` block to hand the user. The underlying operations, if you ever need them by hand (elevated):
+
+```powershell
+Stop-Service -Name OptionsPlusUpdaterService -Force
+Set-Service  -Name OptionsPlusUpdaterService -StartupType Disabled
+# Soft-disable the Run entry (StartupApproved byte 0x03) — leaves the value intact, same as Task Manager's toggle.
 ```
 
 Also tell the user to open Logi Options+ → Settings → uncheck "Open at startup". Otherwise the app re-registers itself.
@@ -123,4 +136,4 @@ That's the WOW6432Node Run key (32-bit installers). Task Manager only shows entr
 
 After any disable, re-run `.\tools\windows\startup\startup-inventory.ps1` to confirm the change took effect. Most disables only show their effect after the next logon, but Run key removals show immediately and service `Stopped` state shows after `Stop-Service`.
 
-If Marty wants live confirmation that the process isn't currently running, follow up with the `windows-perf-diagnosis` skill / `perf-snapshot.ps1`.
+If the user wants live confirmation that the process isn't currently running, follow up with the `windows-perf-diagnosis` skill / `perf-snapshot.ps1`.

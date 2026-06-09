@@ -3,18 +3,35 @@
 .SYNOPSIS    Capture a one-time performance snapshot: CPU, RAM, disk, top processes, pagefile, power plan, VMs.
 .PLATFORM    windows
 .CATEGORY    diagnostics
-.USAGE       .\tools\windows\diagnostics\perf-snapshot.ps1 [-Top <n>] [-SaveLog]
+.USAGE       .\tools\windows\diagnostics\perf-snapshot.ps1 [-Top <n>] [-SaveLog] [-ExcludeDev] [-Exclude <names>] [-OnlyDev]
 .WHEN        Machine feels slow or unresponsive; before/after a fix to compare baseline; Outlook+Cursor+Claude all open
+             Use -ExcludeDev to hide dev tools (node/Docker/PowerToys/Tailscale) and see what ELSE is loading the box.
 #>
 param(
     [int]$Top = 15,
-    [switch]$SaveLog
+    [switch]$SaveLog,
+    [switch]$ExcludeDev,        # hide the dev allowlist (node/Docker+WSL/PowerToys/Tailscale) from the top tables
+    [string[]]$Exclude = @(),   # extra process-name patterns to hide (e.g. 'msedge*','Cursor'); -like, case-insensitive
+    [switch]$OnlyDev            # inverse: show ONLY the dev allowlist (how much is the dev stack itself using?)
 )
 
 $repoRoot  = Resolve-Path (Join-Path $PSScriptRoot '..\..\..')
 $logDir    = Join-Path $repoRoot 'logs\windows\diagnostics'
 $timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 $lines     = [System.Collections.Generic.List[string]]::new()
+
+# Dev allowlist (dot-sourced). Filtering below is applied ONLY to the top-consumers tables —
+# VM detection and the KNOWN HOGS watchlist stay unfiltered on purpose (Docker/vmmemWSL should still show).
+. "$PSScriptRoot\dev-allowlist.ps1"
+$allProcs = Get-Process
+$suppress = @()
+if ($ExcludeDev) { $suppress += $DevAllowlist }
+$suppress += $Exclude
+function Test-Keep([string]$name) {
+    if ($OnlyDev) { return (Test-DevProcess -Name $name -ExtraPatterns $Exclude) }
+    foreach ($pat in $suppress) { if ($name -like $pat) { return $false } }
+    return $true
+}
 
 function Section([string]$title) {
     $lines.Add('')
@@ -74,9 +91,11 @@ Get-PhysicalDisk | ForEach-Object {
 }
 
 # ── Top processes by CPU ──────────────────────────────────────────────────────
-Section "TOP $Top PROCESSES BY CPU (accumulated seconds)"
-$cpuProcs = Get-Process |
-    Where-Object { $_.CPU -gt 0 } |
+$cpuTitle = "TOP $Top PROCESSES BY CPU (accumulated seconds)"
+if ($OnlyDev) { $cpuTitle += ' — DEV TOOLS ONLY' } elseif ($suppress.Count) { $cpuTitle += ' — DEV TOOLS EXCLUDED' }
+Section $cpuTitle
+$cpuProcs = $allProcs |
+    Where-Object { $_.CPU -gt 0 -and (Test-Keep $_.Name) } |
     Sort-Object CPU -Descending |
     Select-Object -First $Top Name, Id,
         @{N='CPU(s)';  E={[math]::Round($_.CPU, 1)}},
@@ -84,13 +103,26 @@ $cpuProcs = Get-Process |
 $cpuProcs | ForEach-Object { Out ('{0,-30} pid={1,-7} cpu={2,-10} ram={3} MB' -f $_.Name, $_.Id, $_.'CPU(s)', $_.'RAM(MB)') }
 
 # ── Top processes by RAM ──────────────────────────────────────────────────────
-Section "TOP $Top PROCESSES BY RAM"
-$ramProcs = Get-Process |
+$ramTitle = "TOP $Top PROCESSES BY RAM"
+if ($OnlyDev) { $ramTitle += ' — DEV TOOLS ONLY' } elseif ($suppress.Count) { $ramTitle += ' — DEV TOOLS EXCLUDED' }
+Section $ramTitle
+$ramProcs = $allProcs |
+    Where-Object { Test-Keep $_.Name } |
     Sort-Object WorkingSet64 -Descending |
     Select-Object -First $Top Name, Id,
         @{N='RAM(MB)'; E={[math]::Round($_.WorkingSet64 / 1MB, 0)}},
         @{N='CPU(s)';  E={[math]::Round($_.CPU, 1)}}
 $ramProcs | ForEach-Object { Out ('{0,-30} pid={1,-7} ram={2,-8} MB  cpu={3} s' -f $_.Name, $_.Id, $_.'RAM(MB)', $_.'CPU(s)') }
+
+# Suppression footer — always print what the allowlist hid, so nothing vanishes silently.
+if ($OnlyDev) {
+    Out ''
+    Out '(showing dev tools only — -OnlyDev; omit it to see the full machine)'
+} elseif ($suppress.Count) {
+    $sup = @($allProcs | Where-Object { -not (Test-Keep $_.Name) })
+    $footer = Get-DevSuppressionSummary -Suppressed $sup -ExtraPatterns $Exclude
+    if ($footer) { Out ''; Out $footer }
+}
 
 # ── Virtual machine identification ───────────────────────────────────────────
 Section 'VIRTUAL MACHINES'

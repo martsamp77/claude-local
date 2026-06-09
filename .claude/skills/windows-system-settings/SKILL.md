@@ -116,11 +116,11 @@ Set-ItemProperty -Path $cd -Name "SilentInstalledAppsEnabled"     -Value 0 -Type
 Set-ItemProperty -Path $cd -Name "RotatingLockScreenOverlayEnabled" -Value 0 -Type DWord
 ```
 
-Telemetry level (`HKLM`, needs admin) is intentionally not enumerated here — confirm with Marty before touching machine-wide telemetry policy.
+Telemetry level (`HKLM`, needs admin) is intentionally not enumerated here — confirm with the user before touching machine-wide telemetry policy.
 
 ## Focus / Do Not Disturb
 
-Focus Assist state lives at `HKCU:\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.QuietHours` and is messy to manipulate via registry. Prefer the Settings UI for one-off changes; only automate it if Marty asks for an unattended pattern.
+Focus Assist state lives at `HKCU:\Software\Microsoft\Windows\CurrentVersion\Notifications\Settings\Windows.SystemToast.QuietHours` and is messy to manipulate via registry. Prefer the Settings UI for one-off changes; only automate it if the user asks for an unattended pattern.
 
 ## Mouse and keyboard
 
@@ -135,7 +135,7 @@ Set-ItemProperty -Path $mouse -Name "MouseThreshold2" -Value "0" -Type String
 
 ## Default apps
 
-Default app associations are signed and can't be set reliably from PowerShell on Windows 10+ without using `dism /Online /Export-DefaultAppAssociations` (per-machine, needs admin). For Marty's per-user defaults, point him at `Settings > Apps > Default apps`.
+Default app associations are signed and can't be set reliably from PowerShell on Windows 10+ without using `dism /Online /Export-DefaultAppAssociations` (per-machine, needs admin). For the user's per-user defaults, point him at `Settings > Apps > Default apps`.
 
 ## Always
 

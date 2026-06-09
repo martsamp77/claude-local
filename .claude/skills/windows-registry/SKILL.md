@@ -63,8 +63,8 @@ Remove-Item -Path $path -Recurse                   # remove a key and its subkey
 
 ## Scope rules
 
-- **HKCU** writes apply to Marty only, no admin needed. Default to these.
-- **HKLM** writes are machine-wide and need an elevated shell. Confirm with Marty before each `HKLM` write — say which key, what value, what the inverse is.
+- **HKCU** writes apply to the user only, no admin needed. Default to these.
+- **HKLM** writes are machine-wide and need an elevated shell. Confirm with the user before each `HKLM` write — say which key, what value, what the inverse is.
 - Group Policy keys live under `HKCU\Software\Policies\...` and `HKLM\Software\Policies\...`.
 
 ## Common locations worth knowing

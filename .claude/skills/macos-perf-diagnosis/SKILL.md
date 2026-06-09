@@ -1,12 +1,12 @@
 ---
 name: macos-perf-diagnosis
-description: "[macos] Diagnose macOS performance issues — slow Mac, beachballs, fan noise, high CPU/RAM. Use when Marty reports sluggishness on a Mac or when interpreting perf-snapshot.sh output."
+description: "[macos] Diagnose macOS performance issues — slow Mac, beachballs, fan noise, high CPU/RAM. Use when the user reports sluggishness on a Mac or when interpreting perf-snapshot.sh output."
 ---
 
 # macos-perf-diagnosis
 
 Use this skill when:
-- Marty says the Mac is slow, laggy, or showing the spinning beachball
+- the user says the Mac is slow, laggy, or showing the spinning beachball
 - Fans are loud and the Mac feels hot
 - Interpreting output from `tools/macos/diagnostics/perf-snapshot.sh`
 

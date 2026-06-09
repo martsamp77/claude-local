@@ -73,7 +73,7 @@ Enable/disable is independent of bootstrap/bootout. A disabled service won't sta
 
 ## Plist anatomy (a minimal LaunchAgent)
 
-`~/Library/LaunchAgents/com.marty.myjob.plist`:
+`~/Library/LaunchAgents/com.example.myjob.plist`:
 
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -81,19 +81,19 @@ Enable/disable is independent of bootstrap/bootout. A disabled service won't sta
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.marty.myjob</string>
+    <string>com.example.myjob</string>
     <key>ProgramArguments</key>
     <array>
-        <string>/Users/marty/bin/myjob.sh</string>
+        <string>/Users/<user>/bin/myjob.sh</string>
     </array>
     <key>RunAtLoad</key>
     <true/>
     <key>StartInterval</key>
     <integer>3600</integer>          <!-- every hour -->
     <key>StandardOutPath</key>
-    <string>/Users/marty/Library/Logs/myjob.out</string>
+    <string>/Users/<user>/Library/Logs/myjob.out</string>
     <key>StandardErrorPath</key>
-    <string>/Users/marty/Library/Logs/myjob.err</string>
+    <string>/Users/<user>/Library/Logs/myjob.err</string>
 </dict>
 </plist>
 ```
@@ -158,13 +158,13 @@ ls -la ~/Library/LaunchAgents/ /Library/LaunchAgents/
 **Validate a plist before loading:**
 
 ```bash
-plutil -lint ~/Library/LaunchAgents/com.marty.myjob.plist
+plutil -lint ~/Library/LaunchAgents/com.example.myjob.plist
 ```
 
 ## Safety
 
-- **System-wide plists in `/Library/LaunchDaemons/` need explicit confirmation.** Per CLAUDE.md, get a clear yes from Marty before any write/delete here.
+- **System-wide plists in `/Library/LaunchDaemons/` need explicit confirmation.** Per CLAUDE.md, get a clear yes from the user before any write/delete here.
 - **Backup before edits.** Copy the existing plist to `backups/macos/launchd/<ts>/` before modifying.
 - **`bootout` doesn't delete the plist file** — it just unloads the running service. To make it permanent across reboots, delete or rename the plist too.
-- **A plist in `~/Library/LaunchAgents/` whose `Label` doesn't match the filename basename will surprise you.** Match `com.marty.myjob` label to `com.marty.myjob.plist`.
-- **Don't auto-elevate.** If a daemon edit needs `sudo`, print the command and let Marty run it.
+- **A plist in `~/Library/LaunchAgents/` whose `Label` doesn't match the filename basename will surprise you.** Match `com.example.myjob` label to `com.example.myjob.plist`.
+- **Don't auto-elevate.** If a daemon edit needs `sudo`, print the command and let the user run it.

@@ -5,7 +5,7 @@ description: "[windows] Manage Nilesoft Shell — Windows context-menu replaceme
 
 # nilesoft-shell
 
-Use this skill when Marty wants to customize his Windows context menus via Nilesoft Shell — adjust theme, add custom items, modify or remove system entries, change dark mode behavior, or register/unregister the extension.
+Use this skill when the user wants to customize his Windows context menus via Nilesoft Shell — adjust theme, add custom items, modify or remove system entries, change dark mode behavior, or register/unregister the extension.
 
 ## Where things live
 
@@ -138,6 +138,6 @@ theme
 ## Don't
 
 - Don't edit `shell.log`.
-- Don't run `-unregister` without confirming with Marty — it strips the extension and reverts to the default Windows menu until re-registered.
+- Don't run `-unregister` without confirming with the user — it strips the extension and reverts to the default Windows menu until re-registered.
 - Don't add destructive commands (e.g. `del`, `format`) to `cmd=` items without explicit ask — context-menu entries fire on a single click.
 - Don't blanket-replace `imports\*.nss` with versions from the public repo without diffing first — the installed copies may have local edits.

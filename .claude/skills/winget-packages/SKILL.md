@@ -48,7 +48,7 @@ winget list --upgrade-available        # what's out of date
 
 ```powershell
 winget upgrade --id Microsoft.PowerToys --exact
-winget upgrade --all                   # upgrade everything — confirm with Marty first
+winget upgrade --all                   # upgrade everything — confirm with the user first
 winget upgrade --all --include-unknown # also upgrade packages with unknown installed versions
 ```
 
