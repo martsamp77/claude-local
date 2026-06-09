@@ -32,6 +32,23 @@ logs, the watched source + errors folders, the config XMLs, and live process inf
 - **Snapshot** is always written to `%ProgramData%\ScanToPDF-Dashboard\` and, if `-SharePath` is given,
   to that share too — so a self-contained `status.html` is viewable even if the web server is down.
 
+## Editing the dashboard (hot-reload)
+
+The data collection and HTML rendering live in **`scantopdf-dashboard.lib.ps1`**. The running `-Serve`
+server watches that file and **re-sources it the moment it changes** — so edits to *what* is shown or *how*
+it looks appear on the **next page refresh, with no restart**. (The plumbing — the param block, listener
+loop, and snapshot writer — is in `scantopdf-dashboard.ps1`; changing *that* needs a restart.)
+
+Iterate like this:
+- Edit `scantopdf-dashboard.lib.ps1` (e.g. tweak `ConvertTo-StatusHtml`, add a field to `Get-ScanToPdfStatus`).
+- Refresh the browser — the change is live. Confirm with a `Hot-reloaded …` line in `server.log`.
+- Want a quick check without touching the live server? `scantopdf-dashboard.ps1 -Once` renders the new code
+  straight to `…\status.html`.
+
+> **First time only:** if a server was already running from *before* this split, restart it once
+> (`Restart-ScheduledTask -TaskName 'ScanToPDF Dashboard' -TaskPath '\ScanToPDF\'`, or kill the `-Serve`
+> pwsh process) so it loads the hot-reload-aware plumbing. After that, lib edits are live.
+
 ## Access & security
 
 - **Subnet-scoped, no auth.** The installer opens an inbound firewall rule **`ScanToPDF Dashboard`**

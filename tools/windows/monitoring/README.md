@@ -16,6 +16,7 @@ PDF is retried on every restart. This watchdog detects and recovers from all of 
 | [`scantopdf-watchdog.ps1`](scantopdf-watchdog.ps1) | The watchdog. Runs as **SYSTEM** on a schedule (default every 3 min); restarts the stopped service, kills a hung UI / orphaned `TOCRRService.exe`, quarantines oversized "poison" PDFs, and alerts. |
 | [`install-scantopdf-watchdog.ps1`](install-scantopdf-watchdog.ps1) | One-time **elevated** installer / uninstaller. Registers the scheduled task, ensures the event-log source, provisions the Teams webhook (kept out of source control), and caps `maxBatchCount`. |
 | [`scantopdf-dashboard.ps1`](scantopdf-dashboard.ps1) | **Read-only status dashboard.** A tiny built-in web server (`-Serve`) plus a static `status.html`/`status.json` snapshot (`-Once`) showing service health, the watchdog, OCR, scanning activity and queue — for admins, troubleshooters, and scan operators. PII-safe by default. |
+| [`scantopdf-dashboard.lib.ps1`](scantopdf-dashboard.lib.ps1) | The dashboard's data collection + HTML rendering. **Hot-reloaded** by the running server on save — edit this to change what's shown / how it looks and it appears on the next refresh, no restart. Dot-sourced, not run directly. |
 | [`install-scantopdf-dashboard.ps1`](install-scantopdf-dashboard.ps1) | One-time **elevated** installer / uninstaller for the dashboard. Registers a SYSTEM start-up task, reserves the URL ACL, and opens a **subnet-scoped** inbound firewall rule (`-Subnet` required). |
 
 ## What the watchdog does each run
@@ -78,6 +79,9 @@ It runs as a SYSTEM start-up task hosting a small web server, and also drops a s
 .\tools\windows\monitoring\install-scantopdf-dashboard.ps1 -Subnet 10.0.0.0/24 -Port 8088 -SharePath "\\MD-FS01\ScanToPDF-Status"
 # then browse  http://<server>:8088/    (JSON: /status.json, health: /healthz)
 ```
+
+Iterate on it live: the collection + rendering live in `scantopdf-dashboard.lib.ps1`, which the running
+server **hot-reloads on save** — edits show on the next refresh, no restart.
 
 Full reference: [`docs/windows/scantopdf-dashboard-guide.md`](../../../docs/windows/scantopdf-dashboard-guide.md).
 

@@ -80,6 +80,7 @@ claude-local/
 │   │       ├── scantopdf-watchdog.ps1           # Self-healing watchdog for ScanToPDF
 │   │       ├── install-scantopdf-watchdog.ps1   # Installer: SYSTEM task + event-log source + batch cap
 │   │       ├── scantopdf-dashboard.ps1          # Read-only status dashboard (web server + HTML snapshot)
+│   │       ├── scantopdf-dashboard.lib.ps1      # Dashboard collection + rendering (hot-reloaded by the server)
 │   │       └── install-scantopdf-dashboard.ps1  # Installer: SYSTEM start-up task + urlacl + subnet firewall rule
 │   ├── linux/                         # bash — .sh (perf-snapshot.sh)
 │   ├── macos/                         # bash — .sh (perf-snapshot.sh)
