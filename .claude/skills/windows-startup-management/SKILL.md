@@ -20,9 +20,15 @@ Use when the user says any of:
 
 # Deep-dive on one or more named scheduled tasks (action / principal / triggers)
 .\tools\windows\startup\inspect-task.ps1 -Name SidebarStartup,StartCN
+
+# Reversibly DISABLE an item (service + Run entry + processes), backup first. The action tool.
+.\tools\windows\startup\disable-startup-item.ps1 -Preset LogiOptionsPlus [-DryRun] [-Undo]
+.\tools\windows\startup\disable-startup-item.ps1 -Service <svc> [-ServiceStartupType Disabled|Manual] -RunEntry <name> [-RunHive HKLM|HKCU] -KillProcess <proc>
 ```
 
-`startup-inventory.ps1` prints five sections; read all of them before recommending anything. The slash command `/startup` runs the inventory and asks Claude to interpret it.
+`startup-inventory.ps1` and `inspect-task.ps1` are read-only audits. `disable-startup-item.ps1` is the only tool that **changes** anything: it stops + sets a service's start type, soft-disables a Run entry via the StartupApproved flag, kills processes, and backs up to `backups/windows/registry/` first. It refuses to auto-elevate — run non-elevated and it prints a ready-to-paste `RunAs` block. `-Undo` reverses it. Preview with `-DryRun`. Add new offenders as presets in the `$Presets` table at the top of the script.
+
+The slash command `/startup` runs the inventory and interprets it; `/disable-startup <preset|item>` drives the disabler (preview → confirm → apply → verify).
 
 ## The four startup vectors
 
@@ -96,13 +102,20 @@ Per `CLAUDE.md`: **don't auto-elevate**. Stage the commands and hand the user a 
 
 ### Logi Options+ (the recurring offender)
 
-Lives in TWO places — the obvious Run key AND a Windows service:
+A perennial hog worth disabling whenever the user isn't actively customizing Logitech devices. It lives in several places — the `OptionsPlusUpdaterService` auto-start service (which relaunches the agent), the legacy `Logitech Download Assistant` HKLM Run entry, and ~240 MB of running processes (`logioptionsplus_agent` + `_appbroker` + `_updater` + `LogiPluginService`/`Ext`). There is **no** scheduled task / Run key / startup-folder entry for the agent itself — the service is the autostart vector.
+
+Just use the preset (it backs up, stops + sets the service to **Disabled**, soft-disables the Run entry, and kills the processes):
 
 ```powershell
-# Elevated:
-Set-Service -Name OptionsPlusUpdaterService -StartupType Manual
-Stop-Service -Name OptionsPlusUpdaterService
-Remove-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows\CurrentVersion\Run' -Name 'Logitech Download Assistant'
+.\tools\windows\startup\disable-startup-item.ps1 -Preset LogiOptionsPlus     # add -DryRun to preview, -Undo to reverse
+```
+
+The preset uses `Disabled` rather than the table's gentler `Manual` default: the updater service exists only to auto-start and self-update, so a hard disable is the intended outcome and the app still works when launched by hand. Run non-elevated to get the `RunAs` block to hand the user. The underlying operations, if you ever need them by hand (elevated):
+
+```powershell
+Stop-Service -Name OptionsPlusUpdaterService -Force
+Set-Service  -Name OptionsPlusUpdaterService -StartupType Disabled
+# Soft-disable the Run entry (StartupApproved byte 0x03) — leaves the value intact, same as Task Manager's toggle.
 ```
 
 Also tell the user to open Logi Options+ → Settings → uncheck "Open at startup". Otherwise the app re-registers itself.

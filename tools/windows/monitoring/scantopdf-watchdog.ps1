@@ -1,6 +1,6 @@
 <#
 .NAME        scantopdf-watchdog
-.SYNOPSIS    Self-healing watchdog for ScanToPDF: restarts the stopped service, kills the hung UI and orphaned OCR engines, and quarantines oversized poison files that cause repeat lockups.
+.SYNOPSIS    Self-healing watchdog for ScanToPDF: restarts the stopped (or wedged StopPending) service, kills the hung UI and orphaned OCR engines, and quarantines oversized poison files that cause repeat lockups.
 .PLATFORM    windows
 .CATEGORY    monitoring
 .USAGE       .\tools\windows\monitoring\scantopdf-watchdog.ps1 [-DryRun] [-SaveLog] [-QuarantineSizeMB 20] [-HotFolder <path>] [-NoAlert]
@@ -26,8 +26,10 @@ param(
     [string]$ServiceName = 'ScanToPDFService',
     # Interactive UI process names (no .exe) to watch for hangs.
     [string[]]$UiProcessNames = @('ScanToPDF', 'ScanToPDFB10'),
-    # AutoFileImport hot folder watched by the ScanToPDF service. Set -HotFolder to your site's path.
-    [string]$HotFolder = 'E:\ScanToPDF\Hot Folder',
+    # AutoFileImport hot folder watched by the ScanToPDF service (this site's real watched path -
+    # see Plugins\AutoFileImport\<profile>.xml; the local E: path is more reliable for a SYSTEM service
+    # than the \\MD-FS01\... UNC equivalent). Set -HotFolder to your site's path.
+    [string]$HotFolder = 'E:\Assurance Labs\Assurance Scientific\ASL- To be billed\ScanToPDF\Scan to PDF',
     # Where poison files get moved. Defaults to a sibling of the hot folder.
     [string]$QuarantineFolder,
     # A hot-folder PDF at/above this size is a candidate for the poison-file guard.
@@ -111,9 +113,14 @@ function Save-State($state) {
     $state | ConvertTo-Json -Depth 6 | Set-Content -Path $stateFile -Encoding UTF8
 }
 # Keep a JSON array property as a plain string[] of ISO timestamps within the window.
+# Entries that don't parse as a datetime are dropped, not thrown on - this self-heals a
+# corrupted state.json (e.g. timestamps concatenated into one string) instead of crashing
+# the run under $ErrorActionPreference='Stop'.
 function Trim-Window($items, [int]$minutes) {
     $cut = (Get-Date).ToUniversalTime().AddMinutes(-$minutes)
-    @($items | Where-Object { $_ } | Where-Object { ([datetime]$_).ToUniversalTime() -ge $cut } | ForEach-Object { "$_" })
+    @($items | Where-Object { $_ } | Where-Object {
+        try { ([datetime]$_).ToUniversalTime() -ge $cut } catch { $false }
+    } | ForEach-Object { "$_" })
 }
 
 # -- alerting (Teams MessageCard + custom event log), mirrors the existing script --
@@ -165,7 +172,7 @@ if (-not $svc) {
 }
 elseif ($svc.Status -ne 'Running') {
     $serviceWasDown = $true
-    $recent = Trim-Window $state.restarts $RestartWindowMinutes
+    $recent = @(Trim-Window $state.restarts $RestartWindowMinutes)
     Log "Service '$ServiceName' is $($svc.Status). Restarts in last $RestartWindowMinutes min: $($recent.Count)/$MaxRestartsPerWindow." 'WARN'
     if ($recent.Count -ge $MaxRestartsPerWindow) {
         Log "Flap guard tripped - NOT auto-restarting; escalating." 'ERROR'
@@ -174,6 +181,31 @@ elseif ($svc.Status -ne 'Running') {
             -EntryType 'Error' -EventId 1010
     }
     else {
+        # A service wedged mid-transition (StopPending/StartPending) or Paused cannot be
+        # started by Start-Service alone - the SCM is still waiting on the stuck stop. Force
+        # it down and clear the wedged backing process + its hung OCR children first (the
+        # hung-OCR lockup; see the runbook), then fall through to the normal Start-Service.
+        if ($svc.Status -in 'StopPending', 'StartPending', 'Paused', 'PausePending', 'ContinuePending') {
+            Log "Service is $($svc.Status) (wedged) - forcing it down before restart." 'WARN'
+            $svcCim = Get-CimInstance Win32_Service -Filter "Name='$ServiceName'" -ErrorAction SilentlyContinue
+            Invoke-Action "Stop-Service '$ServiceName' -Force (wedged: $($svc.Status))" {
+                Stop-Service -Name $ServiceName -Force -ErrorAction SilentlyContinue
+                try { (Get-Service $ServiceName).WaitForStatus('Stopped', '00:00:20') } catch { }
+            }
+            # If the force-stop didn't take, kill the backing process directly.
+            if ((Get-Service $ServiceName -ErrorAction SilentlyContinue).Status -ne 'Stopped' -and $svcCim.ProcessId) {
+                Invoke-Action "Kill wedged backing process $ServiceName (PID $($svcCim.ProcessId))" { Stop-Process -Id $svcCim.ProcessId -Force -ErrorAction SilentlyContinue }
+            }
+            # Kill the OCR children that were hanging the stop (they orphan once the parent dies anyway).
+            if ($svcCim.ProcessId) {
+                $ocrKids = @(Get-CimInstance Win32_Process -Filter "Name='TOCRRService.exe'" -ErrorAction SilentlyContinue |
+                    Where-Object { $_.ParentProcessId -eq $svcCim.ProcessId })
+                foreach ($k in $ocrKids) {
+                    Invoke-Action "Kill hung OCR child TOCRRService.exe (PID $($k.ProcessId))" { Stop-Process -Id $k.ProcessId -Force -ErrorAction SilentlyContinue }
+                }
+            }
+            if (-not $DryRun) { Start-Sleep -Seconds 2 }
+        }
         Invoke-Action "Start-Service '$ServiceName'" { Start-Service -Name $ServiceName; (Get-Service $ServiceName).WaitForStatus('Running', '00:00:30') }
         $recent += (Get-Date).ToUniversalTime().ToString('o')
         $state.restarts = $recent
@@ -183,7 +215,7 @@ elseif ($svc.Status -ne 'Running') {
 }
 else {
     Log "Service '$ServiceName' is Running." 'INFO'
-    $state.restarts = Trim-Window $state.restarts $RestartWindowMinutes
+    $state.restarts = @(Trim-Window $state.restarts $RestartWindowMinutes)
 }
 
 # ===========================================================================
@@ -207,7 +239,7 @@ foreach ($p in $uiProcs) {
         if (-not $responding) {
             $uiHangHandled = $true
             Invoke-Action "Stop hung UI $($p.ProcessName) (PID $($p.Id), ${wsMB}MB)" { Stop-Process -Id $p.Id -Force }
-            $kills = Trim-Window $state.uiKills (24 * 60)
+            $kills = @(Trim-Window $state.uiKills (24 * 60))
             $kills += (Get-Date).ToUniversalTime().ToString('o')
             $state.uiKills = $kills
             Send-Alert -Title 'ScanToPDF - hung UI killed' -Subtitle "$env:COMPUTERNAME" `

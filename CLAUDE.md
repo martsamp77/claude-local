@@ -134,6 +134,7 @@ When a recurring task would benefit from a reusable script:
 3. Use `$PSScriptRoot` (PS) or `$(cd "$(dirname "$0")" && pwd)` (bash) for all relative path resolution inside the script. Never hardcode absolute paths.
 4. If the script produces output worth saving, write to `$repoRoot/logs/<os>/<category>/<timestamp>-<name>.txt` behind a `-SaveLog` switch.
 5. Update the tools table in README.md.
+6. Give the tool's category directory a `README.md` (e.g. `tools/windows/monitoring/README.md`) covering what the tool(s) there do, quick-start usage, config knobs, and safety notes — and link it from the root README's Tools section. Each tool directory should carry its own README linked from the root.
 
 ## Adding new hooks
 
@@ -205,4 +206,5 @@ Each skill's `description` frontmatter starts with a scope tag — `[windows]`, 
 - `/perf` — run a performance snapshot and get an interpreted summary; dispatches by Platform: win32 → `windows-perf-diagnosis`, linux → `linux-perf-diagnosis`, darwin → `macos-perf-diagnosis`
 - `/capture` — `start`/`stop`/`status`/`analyze [HH:mm]` a background perf-capture for intermittent ("comes and goes") slowdowns; dispatches by Platform (win32 → `tools\windows\diagnostics\perf-{capture,analyze}.ps1`, linux/darwin → `tools/unix/diagnostics/perf-{capture,analyze}.sh`); interprets via the `perf-capture` skill + the OS perf-diagnosis skill
 - `/startup` — audit startup items and recommend what to disable (Windows-only; no equivalent planned for Linux/macOS — startup vectors differ)
+- `/disable-startup` — disable a startup item (preset like `LogiOptionsPlus`, or ad-hoc) reversibly via `disable-startup-item.ps1`; preview → confirm → apply → verify (Windows-only)
 - `/ship` — commit any uncommitted work and push to the remote (cross-platform)

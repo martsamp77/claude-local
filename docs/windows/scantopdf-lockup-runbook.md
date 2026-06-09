@@ -66,13 +66,16 @@ Runs as **SYSTEM every 3 minutes**. Each run:
 
 | Check | Action | Alert |
 |---|---|---|
-| Service not Running | `Start-Service` (flap guard: ≤ 3 / 30 min, else escalate & stop) | Teams + event 1001/1010 |
+| Service not Running (incl. wedged `StopPending`/`StartPending`/`Paused`) | `Start-Service`; if wedged, first `Stop-Service -Force` + kill the backing process and its hung `TOCRRService.exe` children, then start (flap guard: ≤ 3 / 30 min, else escalate & stop) | Teams + event 1001/1010 |
 | UI not responding (confirmed after ~20 s) | `Stop-Process -Force` (operator reopens the UI; service keeps running) | Teams + event 1011 |
 | UI working set ≥ 1500 MB | warn (approaching 32-bit ceiling) | Teams |
 | Orphaned `TOCRRService.exe` (parent gone) | kill | Teams |
 | ≥ 2 OCR crashes in 15 min | early-warning only | Teams + event 1012 |
 | Oversized PDF stuck in hot folder | move to quarantine | Teams + event 1013 |
 
+- **Wedged service:** a service stuck in `StopPending` (the hung-OCR lockup — the SCM is waiting on a stop that the dead/hung
+  OCR child blocks) can't be revived by `Start-Service` alone. The watchdog force-stops it, kills the wedged backing process
+  and its `TOCRRService.exe` children, then starts it; this counts against the flap guard like any other restart.
 - **Poison-file rule:** a hot-folder PDF ≥ `QuarantineSizeMB` (default 20) is moved to the quarantine folder only when it has
   persisted ≥ 3 cycles **with correlated instability**, or has sat there ≥ 30 min — so a file that's merely processing normally
   is never yanked.
@@ -147,10 +150,25 @@ Once the watchdog is installed, steps 1–4 happen automatically within ~3 minut
 
 ---
 
+## Status dashboard
+
+A read-only web dashboard (`tools/windows/monitoring/scantopdf-dashboard.ps1`) surfaces this whole picture
+live — service up/down, the watchdog's last run, OCR crashes, scanning throughput and the queue — for
+admins, troubleshooters, and scan operators. It runs as a SYSTEM start-up task and also writes a
+self-contained `status.html` snapshot. See [`scantopdf-dashboard-guide.md`](scantopdf-dashboard-guide.md).
+
 ## Follow-ups (recommended, out of scope here)
 
 - **Real cure = the OCR engine.** The `0xc0000005` is *inside* Transym TOCR 5.1 (2015–2020). Engage scantopdf.com support to
   update the OCR plugin/engine — the watchdog mitigates, it doesn't fix the crash.
+- **OCR is turned OFF on the active profile.** `Plugins\OCRRecognition\Scan to PDF.xml` has `active="False"` (only the
+  `Default` profile has it on), yet `TOCRRService.exe` instances still run and still crash historically. Confirm with the
+  site whether OCR-on-import is meant to be disabled for the "Scan to PDF" profile — if it *should* be on, that's a config
+  fix; if it's intentionally off, the OCR-crash risk is lower than the original diagnosis assumed. (Read-only finding; no
+  change made. The dashboard shows this flag.)
+- **Hot-folder default corrected (2026-06).** The watchdog's `-HotFolder` default was `E:\ScanToPDF\Hot Folder`, which does
+  not exist here — so the poison-file quarantine guard never actually watched anything. It now defaults to the real
+  AutoFileImport source `E:\Assurance Labs\Assurance Scientific\ASL- To be billed\ScanToPDF\Scan to PDF`.
 - **Interactive memory ceiling.** The UI runs 32-bit `ScanToPDF.exe`; launching via `ScanToPDFx64.exe` (64-bit, already present)
   raises the address ceiling for big interactive scans. Check which exe the desktop shortcut / autostart uses.
 - **Security.** `C:\Scripts\Alerting-WindowsService.ps1` contains a **hardcoded plaintext SMTP password** — rotate it and move to
