@@ -134,6 +134,7 @@ When a recurring task would benefit from a reusable script:
 3. Use `$PSScriptRoot` (PS) or `$(cd "$(dirname "$0")" && pwd)` (bash) for all relative path resolution inside the script. Never hardcode absolute paths.
 4. If the script produces output worth saving, write to `$repoRoot/logs/<os>/<category>/<timestamp>-<name>.txt` behind a `-SaveLog` switch.
 5. Update the tools table in README.md.
+6. Give the tool's category directory a `README.md` (e.g. `tools/windows/monitoring/README.md`) covering what the tool(s) there do, quick-start usage, config knobs, and safety notes — and link it from the root README's Tools section. Each tool directory should carry its own README linked from the root.
 
 ## Adding new hooks
 

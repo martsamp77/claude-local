@@ -172,6 +172,8 @@ Scripts Claude can run directly. All paths are relative — no hardcoded machine
 | `tools/windows/monitoring/scantopdf-watchdog.ps1` | Self-healing watchdog for ScanToPDF: restarts the stopped service, kills the hung UI / orphaned OCR engines, quarantines oversized poison PDFs, alerts to Teams + event log | `-DryRun`, `-SaveLog`, `-QuarantineSizeMB`, `-NoAlert` |
 | `tools/windows/monitoring/install-scantopdf-watchdog.ps1` | Installs the watchdog: registers the SYSTEM scheduled task, ensures the event-log source, provisions the Teams webhook, caps `maxBatchCount`. Run elevated | `-DryRun`, `-IntervalMinutes`, `-BatchCap`, `-WebhookUrl`, `-Uninstall` |
 
+📁 [`tools/windows/monitoring/`](tools/windows/monitoring/README.md) has its own README — ScanToPDF watchdog setup, operations, and configuration (full diagnosis in the [lockup runbook](docs/windows/scantopdf-lockup-runbook.md)).
+
 ### Linux (`tools/linux/`)
 
 | Script | What it does | Key params |
