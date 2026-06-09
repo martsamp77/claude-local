@@ -119,15 +119,22 @@ if (-not $SkipTask) {
     Do-It "Register $fullTaskName (SYSTEM, every $IntervalMinutes min)" {
         $action  = New-ScheduledTaskAction -Execute 'powershell.exe' `
                     -Argument "-NoProfile -ExecutionPolicy Bypass -File `"$WatchdogScript`" -SaveLog"
-        $trigger = New-ScheduledTaskTrigger -Once -At (Get-Date).Date `
-                    -RepetitionInterval (New-TimeSpan -Minutes $IntervalMinutes) -RepetitionDuration ([TimeSpan]::MaxValue)
+        # Run every $IntervalMinutes minutes, indefinitely. Built as a daily trigger that
+        # borrows a 24h repetition pattern -- this avoids the [TimeSpan]::MaxValue serialization
+        # overflow that yields "task XML contains a value ... out of range" on Server 2016/2019.
+        $startAt = (Get-Date).Date   # for a Daily trigger only the time-of-day matters
+        $daily   = New-ScheduledTaskTrigger -Daily -At $startAt
+        $repeat  = New-ScheduledTaskTrigger -Once -At $startAt `
+                    -RepetitionInterval (New-TimeSpan -Minutes $IntervalMinutes) `
+                    -RepetitionDuration (New-TimeSpan -Hours 24)
+        $daily.Repetition = $repeat.Repetition
         $atBoot  = New-ScheduledTaskTrigger -AtStartup
         $princ   = New-ScheduledTaskPrincipal -UserId 'S-1-5-18' -LogonType ServiceAccount -RunLevel Highest
         $set     = New-ScheduledTaskSettingsSet -MultipleInstances IgnoreNew `
                     -ExecutionTimeLimit (New-TimeSpan -Minutes 5) -StartWhenAvailable `
                     -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries
         Register-ScheduledTask -TaskName $TaskName -TaskPath $TaskPath -Action $action `
-            -Trigger @($trigger, $atBoot) -Principal $princ -Settings $set -Force `
+            -Trigger @($daily, $atBoot) -Principal $princ -Settings $set -Force `
             -Description 'Self-healing watchdog for ScanToPDF: restarts stopped service, kills hung UI / orphaned OCR, quarantines oversized poison PDFs.' | Out-Null
     }
 } else { Step 'Scheduled task'; Say 'Skipped (-SkipTask).' 'Yellow' }
