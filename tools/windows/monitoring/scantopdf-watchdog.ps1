@@ -26,8 +26,10 @@ param(
     [string]$ServiceName = 'ScanToPDFService',
     # Interactive UI process names (no .exe) to watch for hangs.
     [string[]]$UiProcessNames = @('ScanToPDF', 'ScanToPDFB10'),
-    # AutoFileImport hot folder watched by the ScanToPDF service. Set -HotFolder to your site's path.
-    [string]$HotFolder = 'E:\ScanToPDF\Hot Folder',
+    # AutoFileImport hot folder watched by the ScanToPDF service (this site's real watched path -
+    # see Plugins\AutoFileImport\<profile>.xml; the local E: path is more reliable for a SYSTEM service
+    # than the \\MD-FS01\... UNC equivalent). Set -HotFolder to your site's path.
+    [string]$HotFolder = 'E:\Assurance Labs\Assurance Scientific\ASL- To be billed\ScanToPDF\Scan to PDF',
     # Where poison files get moved. Defaults to a sibling of the hot folder.
     [string]$QuarantineFolder,
     # A hot-folder PDF at/above this size is a candidate for the poison-file guard.

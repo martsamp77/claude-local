@@ -150,10 +150,25 @@ Once the watchdog is installed, steps 1–4 happen automatically within ~3 minut
 
 ---
 
+## Status dashboard
+
+A read-only web dashboard (`tools/windows/monitoring/scantopdf-dashboard.ps1`) surfaces this whole picture
+live — service up/down, the watchdog's last run, OCR crashes, scanning throughput and the queue — for
+admins, troubleshooters, and scan operators. It runs as a SYSTEM start-up task and also writes a
+self-contained `status.html` snapshot. See [`scantopdf-dashboard-guide.md`](scantopdf-dashboard-guide.md).
+
 ## Follow-ups (recommended, out of scope here)
 
 - **Real cure = the OCR engine.** The `0xc0000005` is *inside* Transym TOCR 5.1 (2015–2020). Engage scantopdf.com support to
   update the OCR plugin/engine — the watchdog mitigates, it doesn't fix the crash.
+- **OCR is turned OFF on the active profile.** `Plugins\OCRRecognition\Scan to PDF.xml` has `active="False"` (only the
+  `Default` profile has it on), yet `TOCRRService.exe` instances still run and still crash historically. Confirm with the
+  site whether OCR-on-import is meant to be disabled for the "Scan to PDF" profile — if it *should* be on, that's a config
+  fix; if it's intentionally off, the OCR-crash risk is lower than the original diagnosis assumed. (Read-only finding; no
+  change made. The dashboard shows this flag.)
+- **Hot-folder default corrected (2026-06).** The watchdog's `-HotFolder` default was `E:\ScanToPDF\Hot Folder`, which does
+  not exist here — so the poison-file quarantine guard never actually watched anything. It now defaults to the real
+  AutoFileImport source `E:\Assurance Labs\Assurance Scientific\ASL- To be billed\ScanToPDF\Scan to PDF`.
 - **Interactive memory ceiling.** The UI runs 32-bit `ScanToPDF.exe`; launching via `ScanToPDFx64.exe` (64-bit, already present)
   raises the address ceiling for big interactive scans. Check which exe the desktop shortcut / autostart uses.
 - **Security.** `C:\Scripts\Alerting-WindowsService.ps1` contains a **hardcoded plaintext SMTP password** — rotate it and move to

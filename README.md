@@ -8,7 +8,7 @@ When you open Claude Code in this directory on any machine, `CLAUDE.md` is auto-
 
 | OS | Status | Skills available | Tools available |
 |---|---|---|---|
-| Windows 11 | ✅ Full | 11 (`windows-*`, `winget-packages`, `nilesoft-shell`) | 9 (perf ×4, startup ×3, monitoring ×2) |
+| Windows 11 | ✅ Full | 11 (`windows-*`, `winget-packages`, `nilesoft-shell`) | 11 (perf ×4, startup ×3, monitoring ×4) |
 | Linux | ✅ Baseline | 4 (`linux-perf-diagnosis`, `linux-systemd`, `linux-packages`, `linux-env-vars`) | 1 native + 2 shared (`tools/unix`) |
 | macOS | ✅ Baseline | 5 (`macos-perf-diagnosis`, `macos-launchd`, `macos-homebrew`, `macos-defaults`, `macos-env-vars`) | 1 native + 2 shared (`tools/unix`) |
 | WSL | ↪ Treated as Linux | inherits Linux scope; flags `/mnt/c/...` writes | inherits Linux |
@@ -61,7 +61,8 @@ claude-local/
 │       └── completing-an-improvement/        # [all]
 ├── docs/                              # Tracked runbooks / root-cause diagnoses, by OS
 │   └── windows/
-│       └── scantopdf-lockup-runbook.md  # ScanToPDF lockup diagnosis + auto-recovery
+│       ├── scantopdf-lockup-runbook.md   # ScanToPDF lockup diagnosis + auto-recovery
+│       └── scantopdf-dashboard-guide.md  # ScanToPDF status dashboard — install/use/security
 ├── tools/                             # Executable scripts, organized by OS
 │   ├── windows/                       # PowerShell — .ps1
 │   │   ├── diagnostics/
@@ -76,8 +77,10 @@ claude-local/
 │   │   │   ├── inspect-task.ps1          # Deep-dive on named scheduled task(s)
 │   │   │   └── disable-startup-item.ps1  # Reversibly disable a startup item (presets; -Undo)
 │   │   └── monitoring/
-│   │       ├── scantopdf-watchdog.ps1          # Self-healing watchdog for ScanToPDF
-│   │       └── install-scantopdf-watchdog.ps1  # Installer: SYSTEM task + event-log source + batch cap
+│   │       ├── scantopdf-watchdog.ps1           # Self-healing watchdog for ScanToPDF
+│   │       ├── install-scantopdf-watchdog.ps1   # Installer: SYSTEM task + event-log source + batch cap
+│   │       ├── scantopdf-dashboard.ps1          # Read-only status dashboard (web server + HTML snapshot)
+│   │       └── install-scantopdf-dashboard.ps1  # Installer: SYSTEM start-up task + urlacl + subnet firewall rule
 │   ├── linux/                         # bash — .sh (perf-snapshot.sh)
 │   ├── macos/                         # bash — .sh (perf-snapshot.sh)
 │   └── unix/                          # portable bash for Linux + macOS
@@ -171,8 +174,10 @@ Scripts Claude can run directly. All paths are relative — no hardcoded machine
 | `tools/windows/startup/disable-startup-item.ps1` | Reversibly disable a startup item (auto-start service + Run entry + processes); backs up first, prints a `RunAs` block instead of auto-elevating, `-Undo` reverses. Ships a `LogiOptionsPlus` preset | `-Preset`, `-Service`, `-RunEntry`, `-KillProcess`, `-Undo`, `-DryRun` |
 | `tools/windows/monitoring/scantopdf-watchdog.ps1` | Self-healing watchdog for ScanToPDF: restarts the stopped service, kills the hung UI / orphaned OCR engines, quarantines oversized poison PDFs, alerts to Teams + event log | `-DryRun`, `-SaveLog`, `-QuarantineSizeMB`, `-NoAlert` |
 | `tools/windows/monitoring/install-scantopdf-watchdog.ps1` | Installs the watchdog: registers the SYSTEM scheduled task, ensures the event-log source, provisions the Teams webhook, caps `maxBatchCount`. Run elevated | `-DryRun`, `-IntervalMinutes`, `-BatchCap`, `-WebhookUrl`, `-Uninstall` |
+| `tools/windows/monitoring/scantopdf-dashboard.ps1` | Read-only ScanToPDF status dashboard: a tiny web server (`-Serve`) + static `status.html`/`status.json` snapshot (`-Once`) — service health, watchdog, OCR, activity, queue. PII-safe by default | `-Serve`, `-Once`, `-Port`, `-SharePath`, `-ShowFilenames` |
+| `tools/windows/monitoring/install-scantopdf-dashboard.ps1` | Installs the dashboard: SYSTEM start-up task + URL ACL + subnet-scoped inbound firewall rule. Run elevated | `-Subnet` (required), `-Port`, `-SharePath`, `-DryRun`, `-Uninstall` |
 
-📁 **Per-directory guides:** [`diagnostics/`](tools/windows/diagnostics/README.md) · [`startup/`](tools/windows/startup/README.md) · [`monitoring/`](tools/windows/monitoring/README.md) (ScanToPDF watchdog; full diagnosis in the [lockup runbook](docs/windows/scantopdf-lockup-runbook.md))
+📁 **Per-directory guides:** [`diagnostics/`](tools/windows/diagnostics/README.md) · [`startup/`](tools/windows/startup/README.md) · [`monitoring/`](tools/windows/monitoring/README.md) (ScanToPDF watchdog + status dashboard; [lockup runbook](docs/windows/scantopdf-lockup-runbook.md) · [dashboard guide](docs/windows/scantopdf-dashboard-guide.md))
 
 ### Linux (`tools/linux/`)
 

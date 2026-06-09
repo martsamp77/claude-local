@@ -15,6 +15,8 @@ PDF is retried on every restart. This watchdog detects and recovers from all of 
 |---|---|
 | [`scantopdf-watchdog.ps1`](scantopdf-watchdog.ps1) | The watchdog. Runs as **SYSTEM** on a schedule (default every 3 min); restarts the stopped service, kills a hung UI / orphaned `TOCRRService.exe`, quarantines oversized "poison" PDFs, and alerts. |
 | [`install-scantopdf-watchdog.ps1`](install-scantopdf-watchdog.ps1) | One-time **elevated** installer / uninstaller. Registers the scheduled task, ensures the event-log source, provisions the Teams webhook (kept out of source control), and caps `maxBatchCount`. |
+| [`scantopdf-dashboard.ps1`](scantopdf-dashboard.ps1) | **Read-only status dashboard.** A tiny built-in web server (`-Serve`) plus a static `status.html`/`status.json` snapshot (`-Once`) showing service health, the watchdog, OCR, scanning activity and queue — for admins, troubleshooters, and scan operators. PII-safe by default. |
+| [`install-scantopdf-dashboard.ps1`](install-scantopdf-dashboard.ps1) | One-time **elevated** installer / uninstaller for the dashboard. Registers a SYSTEM start-up task, reserves the URL ACL, and opens a **subnet-scoped** inbound firewall rule (`-Subnet` required). |
 
 ## What the watchdog does each run
 
@@ -59,11 +61,33 @@ Get-Content "$env:ProgramData\ScanToPDF-Watchdog\watchdog.log" -Tail 40
 .\tools\windows\monitoring\install-scantopdf-watchdog.ps1 -Uninstall -RestoreConfig  # also revert maxBatchCount
 ```
 
+## Status dashboard (read-only web app)
+
+`scantopdf-dashboard.ps1` surfaces everything above as a live page — service up/down, the watchdog's
+last run, OCR crashes, scanning throughput and queue — for admins, troubleshooters, and scan operators.
+It runs as a SYSTEM start-up task hosting a small web server, and also drops a self-contained
+`status.html` snapshot locally (and to a share, if given). **Read-only**, **PII-safe by default**
+(counts/sizes/pages, not document filenames); LAN access is scoped to your subnet by a firewall rule.
+
+```powershell
+# Test the snapshot locally (safe, no server/changes), then preview the install
+.\tools\windows\monitoring\scantopdf-dashboard.ps1 -Once         # -> %ProgramData%\ScanToPDF-Dashboard\status.html
+.\tools\windows\monitoring\install-scantopdf-dashboard.ps1 -DryRun -Subnet 10.0.0.0/24
+
+# Install (ELEVATED) — -Subnet is REQUIRED (firewall scope); -SharePath optional
+.\tools\windows\monitoring\install-scantopdf-dashboard.ps1 -Subnet 10.0.0.0/24 -Port 8088 -SharePath "\\MD-FS01\ScanToPDF-Status"
+# then browse  http://<server>:8088/    (JSON: /status.json, health: /healthz)
+```
+
+Full reference: [`docs/windows/scantopdf-dashboard-guide.md`](../../../docs/windows/scantopdf-dashboard-guide.md).
+
 ## Configuration
 
-- **Hot folder:** the watchdog defaults to `E:\ScanToPDF\Hot Folder`. Point it at your site's
-  AutoFileImport source with `-HotFolder '<path>'` (quarantine defaults to a `Scan2PDF_Quarantine`
-  sibling, override with `-QuarantineFolder`).
+- **Hot folder:** the watchdog defaults to this site's real AutoFileImport source,
+  `E:\Assurance Labs\Assurance Scientific\ASL- To be billed\ScanToPDF\Scan to PDF` (from
+  `Plugins\AutoFileImport\<profile>.xml`; the local `E:` path is more reliable for a SYSTEM service than
+  the `\\MD-FS01\…` UNC). Point it elsewhere with `-HotFolder '<path>'` (quarantine defaults to a
+  `Scan2PDF_Quarantine` sibling, override with `-QuarantineFolder`).
 - **Teams webhook (secret):** never lives in source. Resolved at runtime in this order —
   `-WebhookUrl` → `%ProgramData%\ScanToPDF-Watchdog\webhook.url` → `$env:SCANTOPDF_WEBHOOK_URL` → none
   (Teams skipped; event-log + local-log alerting still fire). The installer writes `webhook.url` when
