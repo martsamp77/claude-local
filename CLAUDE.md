@@ -179,7 +179,7 @@ Each skill's `description` frontmatter starts with a scope tag — `[windows]`, 
 - `windows-startup-management` — audit Run keys, startup folders, logon scheduled tasks, auto-start services; triage what to disable
 - `nilesoft-shell` — context-menu customization via Nilesoft Shell (.nss configs, register/unregister, themes)
 - `windows-dev-environment` — git, SSH, WSL, language toolchains, PowerShell profile, VS Code on Windows
-- `windows-hello-diagnosis` — diagnose and fix Windows Hello PIN/fingerprint failures; covers services, NGC folder, Azure AD device registration (`dsregcmd /forcerecovery`), Intune WHfB policy, TPM lockout
+- `windows-hello-diagnosis` — diagnose and fix Windows Hello PIN/fingerprint failures; covers services, NGC folder, Azure AD device registration (`dsregcmd /forcerecovery`), hybrid key-trust-without-PKI (0xC00000BB → cloud Kerberos trust via `tools/windows/identity/`), Intune WHfB policy, TPM lockout
 
 **Linux:**
 - `linux-perf-diagnosis` — diagnose slow/unresponsive Linux box; interpret perf-snapshot.sh output

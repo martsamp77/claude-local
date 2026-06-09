@@ -62,7 +62,8 @@ claude-local/
 ├── docs/                              # Tracked runbooks / root-cause diagnoses, by OS
 │   └── windows/
 │       ├── scantopdf-lockup-runbook.md   # ScanToPDF lockup diagnosis + auto-recovery
-│       └── scantopdf-dashboard-guide.md  # ScanToPDF status dashboard — install/use/security
+│       ├── scantopdf-dashboard-guide.md  # ScanToPDF status dashboard — install/use/security
+│       └── whfb-cloud-kerberos-trust-runbook.md  # Hello PIN 0xC00000BB on hybrid join — diagnosis + cloud-trust fix
 ├── tools/                             # Executable scripts, organized by OS
 │   ├── windows/                       # PowerShell — .ps1
 │   │   ├── diagnostics/
@@ -76,12 +77,15 @@ claude-local/
 │   │   │   ├── startup-inventory.ps1     # Read-only audit of every startup vector
 │   │   │   ├── inspect-task.ps1          # Deep-dive on named scheduled task(s)
 │   │   │   └── disable-startup-item.ps1  # Reversibly disable a startup item (presets; -Undo)
-│   │   └── monitoring/
+│   │   ├── monitoring/
 │   │       ├── scantopdf-watchdog.ps1           # Self-healing watchdog for ScanToPDF
 │   │       ├── install-scantopdf-watchdog.ps1   # Installer: SYSTEM task + event-log source + batch cap
 │   │       ├── scantopdf-dashboard.ps1          # Read-only status dashboard (web server + HTML snapshot)
 │   │       ├── scantopdf-dashboard.lib.ps1      # Dashboard collection + rendering (hot-reloaded by the server)
 │   │       └── install-scantopdf-dashboard.ps1  # Installer: SYSTEM start-up task + urlacl + subnet firewall rule
+│   │   └── identity/
+│   │       ├── setup-whfb-cloud-kerberos-trust.ps1   # Server-side: create AzureADKerberos object (once per domain)
+│   │       └── enable-whfb-cloud-trust-client.ps1    # Client pilot: UseCloudTrustForOnPremAuth=1 (-Undo reverts)
 │   ├── linux/                         # bash — .sh (perf-snapshot.sh)
 │   ├── macos/                         # bash — .sh (perf-snapshot.sh)
 │   └── unix/                          # portable bash for Linux + macOS
@@ -122,7 +126,7 @@ claude-local/
 | [`nilesoft-shell`](.claude/skills/nilesoft-shell/SKILL.md) | `.nss` syntax; CLI flags; runtime modifier shortcuts; reload mechanics |
 | [`windows-perf-diagnosis`](.claude/skills/windows-perf-diagnosis/SKILL.md) | Diagnose slow/unresponsive machine; interpret snapshot output; known hogs and fixes |
 | [`windows-startup-management`](.claude/skills/windows-startup-management/SKILL.md) | Audit startup items across Run keys / folders / scheduled tasks / services; triage tiers; disable patterns |
-| [`windows-hello-diagnosis`](.claude/skills/windows-hello-diagnosis/SKILL.md) | Diagnose and fix Windows Hello PIN/fingerprint failures — services, NGC corruption, Azure AD device registration (`dsregcmd /forcerecovery`), Intune WHfB policy, TPM lockout |
+| [`windows-hello-diagnosis`](.claude/skills/windows-hello-diagnosis/SKILL.md) | Diagnose and fix Windows Hello PIN/fingerprint failures — services, NGC corruption, Azure AD device registration (`dsregcmd /forcerecovery`), hybrid key-trust-without-PKI (0xC00000BB → cloud Kerberos trust), Intune WHfB policy, TPM lockout |
 
 ### Linux (`[linux]`)
 
@@ -177,8 +181,10 @@ Scripts Claude can run directly. All paths are relative — no hardcoded machine
 | `tools/windows/monitoring/install-scantopdf-watchdog.ps1` | Installs the watchdog: registers the SYSTEM scheduled task, ensures the event-log source, provisions the Teams webhook, caps `maxBatchCount`. Run elevated | `-DryRun`, `-IntervalMinutes`, `-BatchCap`, `-WebhookUrl`, `-Uninstall` |
 | `tools/windows/monitoring/scantopdf-dashboard.ps1` | Read-only ScanToPDF status dashboard: a tiny web server (`-Serve`) + static `status.html`/`status.json` snapshot (`-Once`) — service health, watchdog, OCR, activity, queue. PII-safe by default | `-Serve`, `-Once`, `-Port`, `-SharePath`, `-ShowFilenames` |
 | `tools/windows/monitoring/install-scantopdf-dashboard.ps1` | Installs the dashboard: SYSTEM start-up task + URL ACL + subnet-scoped inbound firewall rule. Run elevated | `-Subnet` (required), `-Port`, `-SharePath`, `-DryRun`, `-Uninstall` |
+| `tools/windows/identity/setup-whfb-cloud-kerberos-trust.ps1` | One-time server-side WHfB cloud Kerberos trust setup: creates the `AzureADKerberos` object + `krbtgt_AzureAD` in on-prem AD so Entra issues partial TGTs. Run as Domain Admin (+ Entra admin sign-in) | `-Domain`, `-UserPrincipalName` |
+| `tools/windows/identity/enable-whfb-cloud-trust-client.ps1` | Client-side cloud-trust pilot: backs up then sets `UseCloudTrustForOnPremAuth=1` (HKLM policy), starts `WbioSrvc` if stopped. Run elevated | `-Undo` |
 
-📁 **Per-directory guides:** [`diagnostics/`](tools/windows/diagnostics/README.md) · [`startup/`](tools/windows/startup/README.md) · [`monitoring/`](tools/windows/monitoring/README.md) (ScanToPDF watchdog + status dashboard; [lockup runbook](docs/windows/scantopdf-lockup-runbook.md) · [dashboard guide](docs/windows/scantopdf-dashboard-guide.md))
+📁 **Per-directory guides:** [`diagnostics/`](tools/windows/diagnostics/README.md) · [`startup/`](tools/windows/startup/README.md) · [`monitoring/`](tools/windows/monitoring/README.md) (ScanToPDF watchdog + status dashboard; [lockup runbook](docs/windows/scantopdf-lockup-runbook.md) · [dashboard guide](docs/windows/scantopdf-dashboard-guide.md)) · [`identity/`](tools/windows/identity/README.md) (WHfB cloud Kerberos trust; [runbook](docs/windows/whfb-cloud-kerberos-trust-runbook.md))
 
 ### Linux (`tools/linux/`)
 

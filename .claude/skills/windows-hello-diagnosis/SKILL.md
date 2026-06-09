@@ -1,6 +1,6 @@
 ---
 name: windows-hello-diagnosis
-description: "[windows] Diagnose and fix Windows Hello PIN/fingerprint failures — credentials lost after lock, re-enrollment not sticking, or biometrics greyed out. Covers services, NGC corruption, domain/Intune device registration, and TPM issues."
+description: "[windows] Diagnose and fix Windows Hello PIN/fingerprint failures — credentials lost after lock, re-enrollment not sticking, biometrics greyed out, or PIN error 0xC00000BB on hybrid-joined PCs. Covers services, NGC corruption, domain/Intune device registration, key-trust-without-PKI (cloud Kerberos trust fix), and TPM issues."
 ---
 
 # windows-hello-diagnosis
@@ -70,7 +70,33 @@ Key values: `Expiration` (days, 0 = never), `MinimumPINLength`, `History`.
 
 ---
 
-### 2. WbioSrvc stopped (fingerprint dead on return from idle)
+### 2. Hybrid key trust without PKI — PIN error 0xC00000BB at every logon
+
+**Symptom**: On a hybrid-joined PC (`dsregcmd`: `DomainJoined: YES` + `AzureAdJoined: YES`), PIN fails at the lock screen with `status: 0xc00000bb` (fingerprint: `0xc000005f`). Re-enrollment "succeeds" but the next sign-in fails again. Device registration looks perfectly healthy (`DeviceAuthStatus: SUCCESS`, valid PRT) but SSO State shows `OnPremTgt: NO`. The machine doesn't show at myaccount.microsoft.com/device-list — that's *expected* for hybrid join (no registered owner), and a clue the failing box took a different join path than working Entra-joined siblings.
+
+**Why**: Hello sign-in on a hybrid machine must also authenticate to an on-prem DC. The default **key trust** model requires DCs to hold PKINIT certificates from an enterprise CA. No AD CS in the domain → `0xC00000BB` (STATUS_NOT_SUPPORTED) forever; enrollment still works because it only talks to Entra.
+
+**Diagnosis** (all read-only, regular user):
+```powershell
+Get-WinEvent -LogName "Microsoft-Windows-HelloForBusiness/Operational" -MaxEvents 40
+# Event 7001: "Deployment Type: Key Trust ... 0xC00000BB"
+# Event 5205: "Use Cloud Trust for On-Premise Auth: false / Account has Cloud TGT: false"
+certutil -store -enterprise NTAuth                                  # empty => no enterprise PKI
+([adsisearcher]"(objectClass=pKIEnrollmentService)").FindAll()      # none => no AD CS
+([adsisearcher]"(&(objectClass=computer)(name=AzureADKerberos))").FindOne()  # null => cloud trust not deployed
+nltest /dsgetdc:<domain> /keylist /kdc                              # KEYLIST flag => DCs (2016+) can do cloud trust
+```
+
+**Fix**: deploy **cloud Kerberos trust** (PKI-less, Microsoft-recommended):
+1. Server side (once, Domain Admin + Entra Hybrid Identity/Global Admin): `tools\windows\identity\setup-whfb-cloud-kerberos-trust.ps1 -Domain <domain> -UserPrincipalName <entra-admin-upn>`
+2. Client pilot (elevated): `tools\windows\identity\enable-whfb-cloud-trust-client.ps1` (sets `UseCloudTrustForOnPremAuth=1`; `-Undo` reverts)
+3. Reboot → password sign-in once → PIN. Verify `dsregcmd /status` → `OnPremTgt: YES` and event 5205 flips to true.
+
+Full trail: `docs/windows/whfb-cloud-kerberos-trust-runbook.md`.
+
+---
+
+### 3. WbioSrvc stopped (fingerprint dead on return from idle)
 
 **Symptom**: Fingerprint fails after idle, PIN may still work. `Get-Service WbioSrvc` shows `Stopped`.
 
@@ -85,7 +111,7 @@ Get-Service WbioSrvc | Select-Object Status, StartType
 
 ---
 
-### 3. NGC folder corruption
+### 4. NGC folder corruption
 
 **Symptom**: PIN and fingerprint both fail. Re-enrolment appears to succeed but credentials vanish on next lock.
 
@@ -106,7 +132,7 @@ Then re-enrol PIN first, then fingerprint (PIN is required before biometrics wil
 
 ---
 
-### 4. NgcCtnrSvc startup type wrong
+### 5. NgcCtnrSvc startup type wrong
 
 **Symptom**: PIN fails after cold boot or after service manager restarts. Works in the same session.
 
@@ -123,7 +149,7 @@ sc.exe config NgcCtnrSvc start= demand
 
 ---
 
-### 5. TPM anti-hammering lockout
+### 6. TPM anti-hammering lockout
 
 **Symptom**: All Hello methods fail simultaneously. Timing: exactly around 10-minute intervals (TPM forgets 1 failed attempt per 10 min; locks after 32 failures).
 
@@ -176,6 +202,10 @@ PIN/fingerprint failing after idle?
 │
 ├─ dsregcmd /status → error_missing_device?
 │   └─ YES → dsregcmd /forcerecovery (as user) → re-enrol
+│
+├─ Hybrid-joined + PIN error 0xC00000BB + HelloForBusiness event 7001 "Key Trust"?
+│   └─ YES → no PKI? (NTAuth empty) → deploy cloud Kerberos trust
+│            (tools\windows\identity\, see root cause #2)
 │
 ├─ Get-Service WbioSrvc → Stopped?
 │   └─ YES → Start-Service WbioSrvc → test fingerprint
