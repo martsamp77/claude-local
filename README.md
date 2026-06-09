@@ -172,7 +172,7 @@ Scripts Claude can run directly. All paths are relative — no hardcoded machine
 | `tools/windows/monitoring/scantopdf-watchdog.ps1` | Self-healing watchdog for ScanToPDF: restarts the stopped service, kills the hung UI / orphaned OCR engines, quarantines oversized poison PDFs, alerts to Teams + event log | `-DryRun`, `-SaveLog`, `-QuarantineSizeMB`, `-NoAlert` |
 | `tools/windows/monitoring/install-scantopdf-watchdog.ps1` | Installs the watchdog: registers the SYSTEM scheduled task, ensures the event-log source, provisions the Teams webhook, caps `maxBatchCount`. Run elevated | `-DryRun`, `-IntervalMinutes`, `-BatchCap`, `-WebhookUrl`, `-Uninstall` |
 
-📁 [`tools/windows/monitoring/`](tools/windows/monitoring/README.md) has its own README — ScanToPDF watchdog setup, operations, and configuration (full diagnosis in the [lockup runbook](docs/windows/scantopdf-lockup-runbook.md)).
+📁 **Per-directory guides:** [`diagnostics/`](tools/windows/diagnostics/README.md) · [`startup/`](tools/windows/startup/README.md) · [`monitoring/`](tools/windows/monitoring/README.md) (ScanToPDF watchdog; full diagnosis in the [lockup runbook](docs/windows/scantopdf-lockup-runbook.md))
 
 ### Linux (`tools/linux/`)
 
@@ -180,11 +180,15 @@ Scripts Claude can run directly. All paths are relative — no hardcoded machine
 |---|---|---|
 | `tools/linux/diagnostics/perf-snapshot.sh` | One-shot snapshot: distro, kernel, load, CPU, RAM, swap, disk, top processes by CPU+RAM, known-hog check | `-t TOP` (default 15), `-l` (save log) |
 
+📁 **Per-directory guide:** [`diagnostics/`](tools/linux/diagnostics/README.md)
+
 ### macOS (`tools/macos/`)
 
 | Script | What it does | Key params |
 |---|---|---|
 | `tools/macos/diagnostics/perf-snapshot.sh` | One-shot snapshot: macOS version, model + chip (Apple Silicon perf/efficiency cores), memory (`vm_stat`), swap, disks, power/battery, top by CPU+RAM, Mac-specific known-hog check (kernel_task, WindowServer, mds_stores, etc.) | `-t TOP` (default 15), `-l` (save log) |
+
+📁 **Per-directory guide:** [`diagnostics/`](tools/macos/diagnostics/README.md)
 
 ### Linux + macOS (`tools/unix/`)
 
@@ -194,6 +198,8 @@ Portable bash, used by both Linux and macOS (the `/capture` command dispatches h
 |---|---|---|
 | `tools/unix/diagnostics/perf-capture.sh` | Unattended background monitor; appends timestamped CPU/load/mem samples + spike flag to a log (intermittent slowdowns); writes a PID file | `-i INTERVAL`, `-c CPU_PCT`, `-d DURATION_MIN`, `-t TOP` |
 | `tools/unix/diagnostics/perf-analyze.sh` | Parse a perf-capture log into ranked culprits, slow-time windows, and an optional time-focused view | `-p LOG`, `-a HH:MM`, `-w WINDOW_MIN`, `-c CPU_PCT` |
+
+📁 **Per-directory guide:** [`diagnostics/`](tools/unix/diagnostics/README.md)
 
 ## Commands
 
