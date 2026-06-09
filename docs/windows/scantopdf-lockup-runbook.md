@@ -66,13 +66,16 @@ Runs as **SYSTEM every 3 minutes**. Each run:
 
 | Check | Action | Alert |
 |---|---|---|
-| Service not Running | `Start-Service` (flap guard: ≤ 3 / 30 min, else escalate & stop) | Teams + event 1001/1010 |
+| Service not Running (incl. wedged `StopPending`/`StartPending`/`Paused`) | `Start-Service`; if wedged, first `Stop-Service -Force` + kill the backing process and its hung `TOCRRService.exe` children, then start (flap guard: ≤ 3 / 30 min, else escalate & stop) | Teams + event 1001/1010 |
 | UI not responding (confirmed after ~20 s) | `Stop-Process -Force` (operator reopens the UI; service keeps running) | Teams + event 1011 |
 | UI working set ≥ 1500 MB | warn (approaching 32-bit ceiling) | Teams |
 | Orphaned `TOCRRService.exe` (parent gone) | kill | Teams |
 | ≥ 2 OCR crashes in 15 min | early-warning only | Teams + event 1012 |
 | Oversized PDF stuck in hot folder | move to quarantine | Teams + event 1013 |
 
+- **Wedged service:** a service stuck in `StopPending` (the hung-OCR lockup — the SCM is waiting on a stop that the dead/hung
+  OCR child blocks) can't be revived by `Start-Service` alone. The watchdog force-stops it, kills the wedged backing process
+  and its `TOCRRService.exe` children, then starts it; this counts against the flap guard like any other restart.
 - **Poison-file rule:** a hot-folder PDF ≥ `QuarantineSizeMB` (default 20) is moved to the quarantine folder only when it has
   persisted ≥ 3 cycles **with correlated instability**, or has sat there ≥ 30 min — so a file that's merely processing normally
   is never yanked.
