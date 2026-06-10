@@ -43,19 +43,43 @@ Import-Module AzureADHybridAuthenticationManagement
 
 # 2. Domain-admin credential — prompt in the console; Get-Credential on PS 5.1
 #    pops a GUI dialog that can hide behind the window and look like a hang.
-Write-Host "[2/4] Enter the on-prem domain-admin credential for ${Domain}:"
-$credUser = Read-Host "  Username (e.g. DOMAIN\admin)"
-$credPass = Read-Host "  Password" -AsSecureString
-$domainCred = [System.Management.Automation.PSCredential]::new($credUser, $credPass)
+#    If the shell already runs AS the domain admin, leave blank: explicit
+#    credentials force a bind path that fails ("Failed to connect to domain")
+#    on DCs with LDAP signing enforced; the current-identity path binds sealed.
+Write-Host "[2/4] Domain-admin credential for ${Domain} (press Enter at Username to use the current logged-on identity):"
+$credUser = Read-Host "  Username (e.g. DOMAIN\admin, or Enter to skip)"
+$domainCred = $null
+if ($credUser) {
+    $credPass = Read-Host "  Password" -AsSecureString
+    $domainCred = [System.Management.Automation.PSCredential]::new($credUser, $credPass)
+}
 
 # 3. Create / update the Azure AD Kerberos server object.
 #    Idempotent: safe to re-run; rotates nothing unless -RotateServerKey is added.
+$adArgs = @{ Domain = $Domain; UserPrincipalName = $UserPrincipalName }
+if ($domainCred) { $adArgs.DomainCredential = $domainCred }
 Write-Host "[3/4] Creating the Azure AD Kerberos server object (an Entra sign-in window will open)..."
-Set-AzureADKerberosServer -Domain $Domain -UserPrincipalName $UserPrincipalName -DomainCredential $domainCred
+try {
+    Set-AzureADKerberosServer @adArgs
+} catch {
+    if ($_.Exception.Message -match 'Failed to connect to domain') {
+        Write-Host @"
+'Failed to connect to domain' despite working DNS/LDAP usually means the
+explicit-credential bind path was rejected (LDAP signing). Two ways out:
+  a) Re-launch PowerShell elevated AS the domain-admin account and re-run
+     this script, pressing Enter at the Username prompt (current identity).
+  b) RDP to the PDC (run 'nltest /dsgetdc:$Domain' to find it), open
+     elevated PowerShell as the domain admin, and run:
+       Install-Module AzureADHybridAuthenticationManagement -Scope CurrentUser
+       Set-AzureADKerberosServer -Domain $Domain -UserPrincipalName $UserPrincipalName
+"@ -ForegroundColor Yellow
+    }
+    throw
+}
 
 # 4. Verify
 Write-Host "[4/4] Verifying..."
-$srv = Get-AzureADKerberosServer -Domain $Domain -UserPrincipalName $UserPrincipalName -DomainCredential $domainCred
+$srv = Get-AzureADKerberosServer @adArgs
 $srv | Format-List Id, DomainDnsName, ComputerAccount, UserAccount, KeyVersion, KeyUpdatedOn, KeyUpdatedFrom
 
 # The object is healthy when both the cloud and AD copies exist and key versions are present.
